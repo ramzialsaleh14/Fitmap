@@ -52,7 +52,7 @@ export default function MenuScreen({ navigation }) {
                         onPress={() => navigation.goBack()}
                     >
                         <Text style={styles.menuIcon}>←</Text>
-                        <Text style={styles.menuTitle}>Back to Home</Text>
+                        <Text style={styles.menuTitle}>Back</Text>
                     </TouchableOpacity>
                 </ScrollView>
             </View>
