@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     StatusBar,
     Image,
+    ActivityIndicator,
 
     Alert,
 } from 'react-native';
@@ -38,6 +39,7 @@ export default function MainScreen() {
     const [loadingMessage, setLoadingMessage] = useState('Loading...');
     const [userLocation, setUserLocation] = useState(null);
     const [useLocation, setUseLocation] = useState(false);
+    const [isLocating, setIsLocating] = useState(false);
 
     const loadUserData = async () => {
         const loggedIn = await Commons.getFromAS(Constants.IS_LOGGED_IN);
@@ -101,7 +103,8 @@ export default function MainScreen() {
             return;
         }
 
-        // Get location in background without showing loading
+        // Get location in background and indicate locating state
+        setIsLocating(true);
         const location = await Commons.getCurrentLocation();
         if (location.success) {
             // Permission granted and location obtained
@@ -139,6 +142,7 @@ export default function MainScreen() {
             setUseLocation(false);
             await Commons.saveToAS(Constants.USE_LOCATION, 'false');
         }
+        setIsLocating(false);
     };
 
     const loadNearbyGyms = async (gymsList) => {
@@ -226,6 +230,7 @@ export default function MainScreen() {
                                 style={styles.logoImage}
                                 resizeMode="contain"
                             />
+                            <Text style={styles.logoSmallText}>FitMap</Text>
                         </View>
                     </View>
 
@@ -297,11 +302,21 @@ export default function MainScreen() {
                             />
                         </View>
                     </View>
-                    {/* Nearby Gyms Section */}
-                    {useLocation && nearbyGyms.length > 0 && (
+                    {/* Nearby Gyms Section (show spinner while locating; show results when available) */}
+                    {(useLocation || isLocating || nearbyGyms.length > 0) && (
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>Nearby Gyms</Text>
-                            <GymSlider gyms={nearbyGyms} showDistance={true} />
+
+                            {isLocating ? (
+                                <View style={styles.locatingContainer}>
+                                    <ActivityIndicator size="small" color={theme.colors.primary} />
+                                    <Text style={styles.locatingText}>Finding nearest gyms...</Text>
+                                </View>
+                            ) : nearbyGyms.length > 0 ? (
+                                <GymSlider gyms={nearbyGyms} showDistance={true} />
+                            ) : (
+                                <Text style={styles.noNearbyText}>No nearby gyms found</Text>
+                            )}
                         </View>
                     )}
 
@@ -359,18 +374,23 @@ const styles = StyleSheet.create({
         paddingHorizontal: theme.spacing.sm,
     },
     logoContainer: {
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+        maxWidth: 120,
+
+
     },
     logoImage: {
         height: 65,
         width: 100,
     },
     logoSmallText: {
-        fontSize: theme.fontSize.xl,
+        fontSize: theme.fontSize.md,
         fontWeight: 'bold',
         color: theme.colors.white,
-        letterSpacing: 1,
+        marginTop: theme.spacing.xs,
+        position: 'absolute',
+        left: 50,
     },
     authButtonsTop: {
         flexDirection: 'row',
@@ -517,4 +537,20 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: theme.spacing.lg,
     },
+    locatingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: theme.spacing.lg,
+        gap: theme.spacing.sm,
+    },
+    locatingText: {
+        color: theme.colors.textLight,
+        marginLeft: theme.spacing.sm,
+        fontSize: theme.fontSize.sm,
+    },
+    noNearbyText: {
+        color: theme.colors.textLight,
+        paddingHorizontal: theme.spacing.lg,
+        fontSize: theme.fontSize.sm,
+    }
 });
