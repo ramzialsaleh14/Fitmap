@@ -1,16 +1,15 @@
 {
   "expo": {
-    "name": "FitmapNew",
-    "slug": "FitmapNew",
+    "name": "Fitmap",
+    "slug": "fitmap",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "icon": "./assets/logo.jpeg",
+    "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/logo.jpeg",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#8B0000"
     },
     "ios": {
       "supportsTablet": true
@@ -18,9 +17,8 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true
+        "backgroundColor": "#8B0000"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"

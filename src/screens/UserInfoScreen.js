@@ -1,0 +1,225 @@
+import React, { useState, useEffect } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    ScrollView,
+    TouchableOpacity,
+    Alert,
+    Image,
+} from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { theme } from '../utils/theme';
+import ScreenBackground from '../components/ScreenBackground';
+import * as Commons from '../utils/Commons';
+import * as Constants from '../utils/Constants';
+
+export default function UserInfoScreen() {
+    const navigation = useNavigation();
+    const [user, setUser] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        memberSince: '',
+        profileImage: null,
+    });
+
+    const loadUserData = async () => {
+        const name = await Commons.getFromAS(Constants.USER_NAME);
+        const email = await Commons.getFromAS(Constants.USER_EMAIL);
+        const phone = await Commons.getFromAS(Constants.USER_PHONE);
+        const memberSince = await Commons.getFromAS(Constants.USER_MEMBER_SINCE);
+        const profileImage = await Commons.getFromAS(Constants.USER_PROFILE_IMAGE);
+
+        setUser({
+            name: name || 'User',
+            email: email || 'No email',
+            phone: phone || 'No phone',
+            memberSince: memberSince || 'N/A',
+            profileImage: profileImage || null,
+        });
+    };
+
+    useFocusEffect(
+        React.useCallback(() => {
+            loadUserData();
+        }, [])
+    );
+
+    const handleLogout = async () => {
+        Alert.alert(
+            'Logout',
+            'Are you sure you want to logout?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Logout',
+                    style: 'destructive',
+                    onPress: async () => {
+                        await Commons.removeFromAS(Constants.IS_LOGGED_IN);
+                        await Commons.removeFromAS(Constants.USER_NAME);
+                        await Commons.removeFromAS(Constants.USER_EMAIL);
+                        await Commons.removeFromAS(Constants.USER_PHONE);
+                        await Commons.removeFromAS(Constants.USER_MEMBER_SINCE);
+                        await Commons.removeFromAS(Constants.USER_PROFILE_IMAGE);
+                        navigation.navigate('Main');
+                    },
+                },
+            ]
+        );
+    };
+
+    return (
+        <ScreenBackground>
+            <ScrollView style={styles.container}>
+                <View style={styles.header}>
+                    <View style={styles.avatarContainer}>
+                        {user.profileImage ? (
+                            <Image source={{ uri: user.profileImage }} style={styles.avatarImage} />
+                        ) : (
+                            <View style={styles.avatar}>
+                                <Text style={styles.avatarText}>
+                                    {user.name.split(' ').map(n => n[0]).join('')}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                    <Text style={styles.name}>{user.name}</Text>
+                    <Text style={styles.memberSince}>Member since {user.memberSince}</Text>
+                </View>
+
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Contact Information</Text>
+
+                    <View style={styles.infoCard}>
+                        <View style={styles.infoRow}>
+                            <Text style={styles.infoLabel}>Email</Text>
+                            <Text style={styles.infoValue}>{user.email}</Text>
+                        </View>
+
+                        <View style={styles.divider} />
+
+                        <View style={styles.infoRow}>
+                            <Text style={styles.infoLabel}>Phone</Text>
+                            <Text style={styles.infoValue}>{user.phone}</Text>
+                        </View>
+                    </View>
+                </View>
+
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Actions</Text>
+
+                    <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('EditProfile')}>
+                        <Text style={styles.actionButtonText}>Edit Profile</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={[styles.actionButton, styles.dangerButton]} onPress={handleLogout}>
+                        <Text style={[styles.actionButtonText, styles.dangerButtonText]}>
+                            Logout
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
+        </ScreenBackground>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: 'transparent',
+    },
+    header: {
+        backgroundColor: theme.colors.primary,
+        padding: theme.spacing.xl,
+        alignItems: 'center',
+    },
+    avatarContainer: {
+        marginBottom: theme.spacing.md,
+    },
+    avatar: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: theme.colors.card,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarImage: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        borderWidth: 3,
+        borderColor: theme.colors.card,
+    },
+    avatarText: {
+        fontSize: theme.fontSize.xxl,
+        fontWeight: 'bold',
+        color: theme.colors.primary,
+    },
+    name: {
+        fontSize: theme.fontSize.xl,
+        fontWeight: 'bold',
+        color: theme.colors.white,
+        marginBottom: theme.spacing.xs,
+    },
+    memberSince: {
+        fontSize: theme.fontSize.sm,
+        color: theme.colors.white,
+        opacity: 0.9,
+    },
+    section: {
+        padding: theme.spacing.lg,
+    },
+    sectionTitle: {
+        fontSize: theme.fontSize.lg,
+        fontWeight: 'bold',
+        color: theme.colors.text,
+        marginBottom: theme.spacing.md,
+    },
+    infoCard: {
+        backgroundColor: theme.colors.card,
+        borderRadius: theme.borderRadius.md,
+        padding: theme.spacing.md,
+        elevation: 2,
+        shadowColor: theme.colors.secondary,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+    },
+    infoRow: {
+        paddingVertical: theme.spacing.md,
+    },
+    infoLabel: {
+        fontSize: theme.fontSize.sm,
+        color: theme.colors.textLight,
+        marginBottom: theme.spacing.xs,
+    },
+    infoValue: {
+        fontSize: theme.fontSize.md,
+        color: theme.colors.text,
+        fontWeight: '500',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: theme.colors.border,
+    },
+    actionButton: {
+        backgroundColor: theme.colors.primary,
+        padding: theme.spacing.md,
+        borderRadius: theme.borderRadius.md,
+        alignItems: 'center',
+        marginBottom: theme.spacing.md,
+    },
+    actionButtonText: {
+        color: theme.colors.white,
+        fontSize: theme.fontSize.md,
+        fontWeight: '600',
+    },
+    dangerButton: {
+        backgroundColor: theme.colors.error,
+    },
+    dangerButtonText: {
+        color: theme.colors.white,
+    },
+});
