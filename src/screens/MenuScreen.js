@@ -14,7 +14,7 @@ import * as Constants from '../utils/Constants';
 
 export default function MenuScreen({ navigation }) {
     const menuItems = [
-        { id: '1', title: 'User Info', icon: '👤', screen: 'EditProfile' },
+        { id: '1', title: 'User Info', icon: '👤', screen: 'UserInfo' },
         { id: '2', title: 'Settings', icon: '⚙️', screen: 'Settings' },
     ];
 
@@ -32,7 +32,7 @@ export default function MenuScreen({ navigation }) {
                             style={styles.menuItem}
                             onPress={async () => {
                                 // If the user taps User Info but is not logged in, redirect to Login
-                                if (item.screen === 'UserInfo' || item.screen === 'EditProfile') {
+                                if (item.screen === 'UserInfo') {
                                     const loggedIn = await Commons.getFromAS(Constants.IS_LOGGED_IN);
                                     if (loggedIn !== 'true') {
                                         return navigation.navigate('Login');
