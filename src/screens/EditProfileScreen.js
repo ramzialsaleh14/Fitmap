@@ -13,12 +13,15 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { theme } from '../utils/theme';
+import { useTranslation } from '../utils/Strings';
 import ScreenBackground from '../components/ScreenBackground';
+import { MaterialIcons } from '@expo/vector-icons';
 import * as Commons from '../utils/Commons';
 import * as Constants from '../utils/Constants';
 import * as ServerOperations from '../utils/ServerOperations';
 
 export default function EditProfileScreen({ navigation }) {
+    const { t } = useTranslation();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
@@ -64,7 +67,7 @@ export default function EditProfileScreen({ navigation }) {
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
             if (status !== 'granted') {
-                Alert.alert('Permission Required', 'Sorry, we need camera roll permissions to change your profile picture.');
+                Alert.alert(t('permission_required'), t('need_camera_roll_permissions'));
                 return;
             }
 
@@ -92,7 +95,7 @@ export default function EditProfileScreen({ navigation }) {
             const result = await Promise.race([pickerPromise, timeoutPromise]);
 
             if (result.timeout) {
-                Alert.alert('Timeout', 'Image picker timed out. Please try again.');
+                Alert.alert(t('image_picker_timeout'));
                 return;
             }
 
@@ -127,14 +130,14 @@ export default function EditProfileScreen({ navigation }) {
                     //Alert.alert('Success', 'Profile photo uploaded successfully!');
                 } else {
                     // Fallback to local URI if upload fails
-                    Alert.alert('Upload Failed', 'Failed to upload image to server.');
+                    Alert.alert(t('upload_failed_title'), t('upload_failed'));
                 }
             } else {
                 console.log('pickImage: Image selection was canceled or no assets');
             }
         } catch (error) {
             console.error('pickImage: Error:', error);
-            Alert.alert('Error', `Failed to pick image: ${error.message}. Please try again.`);
+            Alert.alert(t('error'), `${t('failed_pick_or_upload_image')}: ${error.message}.`);
         } finally {
             console.log('pickImage: Setting picker active to false');
             setIsUploading(false);
@@ -144,7 +147,7 @@ export default function EditProfileScreen({ navigation }) {
 
     const handleSave = async () => {
         if (!name.trim()) {
-            Alert.alert('Error', 'Name cannot be empty');
+            Alert.alert(t('error'), t('name_required'));
             return;
         }
 
@@ -165,11 +168,11 @@ export default function EditProfileScreen({ navigation }) {
                 await Commons.saveToAS(Constants.USER_PROFILE_IMAGE, profileImage);
             }
 
-            Alert.alert('Success', 'Profile updated successfully!', [
+            Alert.alert(t('success'), t('profile_updated'), [
                 { text: 'OK', onPress: () => navigation.goBack() }
             ]);
         } else {
-            Alert.alert('Error', response?.msg || 'Failed to update profile. Please try again.');
+            Alert.alert(t('error'), response?.msg || t('failed_update_profile_try_again'));
         }
     };
 
@@ -186,7 +189,7 @@ export default function EditProfileScreen({ navigation }) {
                         <View style={styles.uploadingOverlay}>
                             <View style={styles.uploadingContainer}>
                                 <ActivityIndicator size="large" color={theme.colors.primary} />
-                                <Text style={styles.uploadingText}>Uploading photo...</Text>
+                                <Text style={styles.uploadingText}>{t('uploading_photo') || 'Uploading photo...'}</Text>
                             </View>
                         </View>
                     )}
@@ -201,54 +204,55 @@ export default function EditProfileScreen({ navigation }) {
                                 </View>
                             )}
                             <View style={styles.cameraIconContainer}>
-                                <Text style={styles.cameraIcon}>📷</Text>
+                                <MaterialIcons name="photo-camera" size={18} color={theme.colors.primary} style={styles.cameraIcon} />
                             </View>
                         </TouchableOpacity>
-                        <Text style={styles.changePhotoText}>Tap to change photo</Text>
+                        <Text style={styles.changePhotoText}>{t('tap_change_photo') || 'Tap to change photo'}</Text>
                     </View>
 
                     <View style={styles.form}>
-                        <Text style={styles.label}>Full Name</Text>
+                        <Text style={styles.label}>{t('full_name')}</Text>
                         <TextInput
                             style={styles.input}
                             value={name}
                             onChangeText={setName}
-                            placeholder="Enter your full name"
+                            placeholder={t('enter_full_name')}
                             placeholderTextColor={theme.colors.textLight}
                         />
 
-                        <Text style={styles.label}>Email</Text>
+                        <Text style={styles.label}>{t('email')}</Text>
                         <TextInput
                             style={[styles.input, styles.inputDisabled]}
                             value={email}
                             editable={false}
-                            placeholder="Email address"
+                            placeholder={t('enter_email')}
                             placeholderTextColor={theme.colors.textLight}
                         />
-                        <Text style={styles.helperText}>Email cannot be changed</Text>
+                        <Text style={styles.helperText}>{t('email_cannot_change') || 'Email cannot be changed'}</Text>
 
-                        <Text style={styles.label}>Phone</Text>
+                        <Text style={styles.label}>{t('phone')}</Text>
                         <TextInput
                             style={styles.input}
                             value={phone}
                             onChangeText={setPhone}
-                            placeholder="Enter your phone number"
+                            placeholder={t('enter_phone')}
                             placeholderTextColor={theme.colors.textLight}
                             keyboardType="phone-pad"
                         />
 
                         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                            <Text style={styles.saveButtonText}>Save Changes</Text>
+                            <Text style={styles.saveButtonText}>{t('save_changes')}</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
-                            <Text style={styles.cancelButtonText}>Cancel</Text>
+                        <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => navigation.goBack()}>
+                            <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
             </ScrollView>
         </ScreenBackground>
     );
+
 }
 
 const styles = StyleSheet.create({

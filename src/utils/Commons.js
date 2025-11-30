@@ -270,11 +270,15 @@ export const openAttachment = async (uri) => {
                         const size = fileObj.size;
                         console.log('Audio file info:', { exists, size });
                         if (!exists) {
-                            Alert.alert('File Error', 'Audio file not found.');
+                            const title = await translate('file_error');
+                            const msg = await translate('audio_file_not_found');
+                            Alert.alert(title, msg);
                             return;
                         }
                         if (size === 0) {
-                            Alert.alert('File Error', 'Audio file is empty.');
+                            const title = await translate('file_error');
+                            const msg = await translate('audio_file_empty');
+                            Alert.alert(title, msg);
                             return;
                         }
                     } catch (fileCheckError) {
@@ -307,13 +311,16 @@ export const openAttachment = async (uri) => {
                 });
 
                 if (!status.isLoaded) {
-                    Alert.alert('Playback Error', 'Failed to load audio file.');
+                    const title = await translate('playback_error');
+                    const msg = await translate('failed_to_load_audio');
+                    Alert.alert(title, msg);
                     await sound.unloadAsync();
                     return;
                 }
-
                 if (status.durationMillis === 0) {
-                    Alert.alert('Playback Error', 'Audio file appears to be empty or corrupted.');
+                    const title = await translate('playback_error');
+                    const msg = await translate('audio_file_corrupted');
+                    Alert.alert(title, msg);
                     await sound.unloadAsync();
                     return;
                 }
@@ -357,7 +364,9 @@ export const openAttachment = async (uri) => {
                 return;
             } catch (audioError) {
                 console.warn(`expo-av failed for ${fileExtension}:`, audioError);
-                Alert.alert('Audio Error', `Failed to play audio file. Error: ${audioError.message || audioError}`);
+                const title = await translate('playback_error');
+                const msg = await translate('failed_to_play_audio', { error: audioError.message || audioError });
+                Alert.alert(title, msg);
                 return;
             }
         }
@@ -368,11 +377,42 @@ export const openAttachment = async (uri) => {
         if (supported) {
             Linking.openURL(uri);
         } else {
-            Alert.alert('Cannot open file', 'No application available to open this file.');
+            const title = await translate('cannot_open_file');
+            const msg = await translate('no_application_to_open_file');
+            Alert.alert(title, msg);
         }
     } catch (error) {
         console.error('openAttachment error', error);
-        Alert.alert('Error', `Failed to open attachment. Error: ${error.message || error}`);
+        const title = await translate('error');
+        const msg = await translate('failed_to_open_attachment', { error: error.message || error });
+        Alert.alert(title, msg);
+    }
+};
+
+// helper to load translations dynamically (avoids circular import)
+const translate = async (key, params = null) => {
+    try {
+        const { STRINGS } = await import('./Strings');
+        let lang = (await getFromAS(Constants.language)) || null;
+        if (!lang) {
+            try {
+                const Localization = await import('expo-localization');
+                const loc = await Localization.getLocalizationAsync?.();
+                lang = loc && loc.locale ? (loc.locale + '').substring(0, 2) : 'en';
+            } catch (e) {
+                lang = 'en';
+            }
+        }
+        lang = lang ? lang.substring(0, 2) : 'en';
+        let value = (STRINGS[lang] && STRINGS[lang][key]) || (STRINGS['en'] && STRINGS['en'][key]) || key;
+        if (params && typeof params === 'object') {
+            Object.keys(params).forEach((k) => {
+                value = value.replace(`{${k}}`, params[k]);
+            });
+        }
+        return value;
+    } catch (e) {
+        return key;
     }
 };
 

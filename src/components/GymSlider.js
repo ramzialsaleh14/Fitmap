@@ -6,8 +6,11 @@ import {
     Dimensions,
     StyleSheet,
     Text,
+    TouchableOpacity,
 } from 'react-native';
 import { theme } from '../utils/theme';
+import { useTranslation } from '../utils/Strings';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 48; // More padding on sides
@@ -15,7 +18,8 @@ const CARD_SPACING = 16;
 
 // Category colors are controlled via theme tokens; the slider will show a small badge instead
 
-export default function GymSlider({ gyms, showDistance = false }) {
+export default function GymSlider({ gyms, showDistance = false, onGymPress }) {
+    const { t } = useTranslation();
     const [activeIndex, setActiveIndex] = useState(0);
     const scrollViewRef = useRef(null);
 
@@ -50,7 +54,7 @@ export default function GymSlider({ gyms, showDistance = false }) {
                     const image = photos.length > 0 ? photos[0] : (gym.image || 'https://via.placeholder.com/300x180?text=No+Image');
 
                     return (
-                        <View
+                        <TouchableOpacity
                             key={gym.ID || gym.id || index}
                             style={[
                                 styles.slide,
@@ -61,6 +65,8 @@ export default function GymSlider({ gyms, showDistance = false }) {
                                 index === 0 && styles.firstSlide,
                                 index === gyms.length - 1 && styles.lastSlide
                             ]}
+                            onPress={() => onGymPress && onGymPress(gym)}
+                            activeOpacity={0.9}
                         >
                             <Image
                                 source={{ uri: image }}
@@ -72,15 +78,17 @@ export default function GymSlider({ gyms, showDistance = false }) {
                                     <View style={styles.nameRow}>
                                         <Text style={styles.nameText} numberOfLines={1}>{gymName}</Text>
                                         <View style={[styles.categoryBadge, { backgroundColor: categoryBgColor }]}>
-                                            <Text style={styles.categoryBadgeText}>{category}</Text>
+                                            <Text style={styles.categoryBadgeText}>{t(`category_${String(category).toLowerCase()}`) || category}</Text>
                                         </View>
                                     </View>
                                     {showDistance && gym.distance && (
-                                        <Text style={styles.distanceText}>📍 {gym.distance} km away</Text>
+                                        <Text style={styles.distanceText}>
+                                            <MaterialIcons name="location-on" size={16} color={theme.colors.primary} /> {gym.distance} km away
+                                        </Text>
                                     )}
                                 </View>
                             </View>
-                        </View>
+                        </TouchableOpacity>
                     );
                 })}
             </ScrollView>

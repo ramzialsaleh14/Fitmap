@@ -8,21 +8,42 @@ import {
     Alert,
 } from 'react-native';
 import { theme } from '../utils/theme';
+import { useTranslation } from '../utils/Strings';
 import ScreenBackground from '../components/ScreenBackground';
+import { MaterialIcons } from '@expo/vector-icons';
 import * as Commons from '../utils/Commons';
 import * as Constants from '../utils/Constants';
 
 export default function MenuScreen({ navigation }) {
+    const { t } = useTranslation();
+    const [isLoggedIn, setIsLoggedIn] = React.useState(false);
+    const [userType, setUserType] = React.useState(null);
+
+    React.useEffect(() => {
+        const load = async () => {
+            const logged = await Commons.getFromAS(Constants.IS_LOGGED_IN);
+            const type = await Commons.getFromAS(Constants.USER_TYPE);
+            setIsLoggedIn(logged === 'true');
+            setUserType(type || null);
+        };
+        load();
+    }, []);
+
+    // Build menu items dynamically — show My Subscriptions if user is logged in and type is 'user'
     const menuItems = [
-        { id: '1', title: 'User Info', icon: '👤', screen: 'UserInfo' },
-        { id: '2', title: 'Settings', icon: '⚙️', screen: 'Settings' },
+        { id: '1', title: t('user_info') || 'User Info', icon: <MaterialIcons name="person" size={22} color={theme.colors.primary} />, screen: 'UserInfo' },
+        { id: '2', title: t('settings') || 'Settings', icon: <MaterialIcons name="settings" size={22} color={theme.colors.primary} />, screen: 'Settings' },
     ];
+
+    if (isLoggedIn && userType && userType.toLowerCase() === 'user') {
+        menuItems.splice(1, 0, { id: 'sub', title: t('my_subscriptions'), icon: <MaterialIcons name="subscriptions" size={22} color={theme.colors.primary} />, screen: 'MySubscriptions' });
+    }
 
     return (
         <ScreenBackground>
             <View style={styles.container}>
                 <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Menu</Text>
+                    <Text style={styles.headerTitle}>{t('menu')}</Text>
                 </View>
 
                 <ScrollView style={styles.scrollView}>
@@ -43,22 +64,22 @@ export default function MenuScreen({ navigation }) {
                             }}
                         >
                             <View style={styles.iconWrapper}>
-                                <Text style={styles.menuIcon}>{item.icon}</Text>
+                                {item.icon}
                             </View>
                             <Text style={styles.menuTitle}>{item.title}</Text>
-                            <Text style={styles.menuArrow}>›</Text>
+                            <MaterialIcons name="keyboard-arrow-right" size={30} color={theme.colors.primary} />
                         </TouchableOpacity>
                     ))}
                     <TouchableOpacity
                         style={[styles.menuItem, styles.logoutItem]}
                         onPress={() => {
                             Alert.alert(
-                                'Confirm Logout',
-                                'Are you sure you want to logout?',
+                                t('confirm_logout_title'),
+                                t('confirm_logout_message'),
                                 [
-                                    { text: 'Cancel', style: 'cancel' },
+                                    { text: t('cancel'), style: 'cancel' },
                                     {
-                                        text: 'Logout',
+                                        text: t('logout'),
                                         style: 'destructive',
                                         onPress: async () => {
                                             await Commons.removeFromAS(Constants.IS_LOGGED_IN);
@@ -75,9 +96,9 @@ export default function MenuScreen({ navigation }) {
                         }}
                     >
                         <View style={[styles.iconWrapper, styles.logoutIconWrapper]}>
-                            <Text style={styles.menuIcon}>⎋</Text>
+                            <MaterialIcons name="logout" size={22} color={theme.colors.error} />
                         </View>
-                        <Text style={[styles.menuTitle, styles.logoutText]}>Logout</Text>
+                        <Text style={[styles.menuTitle, styles.logoutText]}>{t('logout')}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -85,9 +106,9 @@ export default function MenuScreen({ navigation }) {
                         onPress={() => navigation.goBack()}
                     >
                         <View style={styles.iconWrapper}>
-                            <Text style={styles.menuIcon}>←</Text>
+                            <MaterialIcons name="arrow-back" size={20} color={theme.colors.primary} />
                         </View>
-                        <Text style={styles.menuTitle}>Back to Home</Text>
+                        <Text style={styles.menuTitle}>{t('back_to_home')}</Text>
                     </TouchableOpacity>
 
                 </ScrollView>
@@ -163,6 +184,7 @@ const styles = StyleSheet.create({
     },
     logoutIconWrapper: {
         backgroundColor: Commons.hexToRgba(theme.colors.error, 0.14),
+        borderRadius: 46 / 2,
     },
     logoutText: {
         color: theme.colors.error,

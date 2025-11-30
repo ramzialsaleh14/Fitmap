@@ -4,151 +4,171 @@ import {
     Text,
     StyleSheet,
     FlatList,
+    TextInput,
     TouchableOpacity,
-    Image,
+    Platform,
+    Keyboard,
 } from 'react-native';
 import { theme } from '../utils/theme';
+import { useTranslation } from '../utils/Strings';
 import * as Commons from '../utils/Commons';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import * as Constants from '../utils/Constants';
 import ScreenBackground from '../components/ScreenBackground';
 import GymCard from '../components/GymCard';
 import LoadingOverlay from '../components/LoadingOverlay';
 import * as ServerOperations from '../utils/ServerOperations';
 
 const categoryDescriptions = {
-    Platinum: 'Premium facilities with world-class amenities and services',
-    Gold: 'High-quality gyms with excellent equipment and training programs',
-    Silver: 'Great gyms with essential amenities at affordable prices',
-    Bronze: 'Budget-friendly gyms perfect for basic fitness needs',
+    Platinum: 'category_platinum_desc',
+    Gold: 'category_gold_desc',
+    Silver: 'category_silver_desc',
+    Bronze: 'category_bronze_desc',
 };
 
-export default function CategoryDetailScreen({ route }) {
-    const navigation = useNavigation();
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [user, setUser] = useState({ name: '', profileImage: null });
-
-    const loadUserData = async () => {
-        const loggedIn = await Commons.getFromAS(Constants.IS_LOGGED_IN);
-        if (loggedIn === 'true') {
-            const name = await Commons.getFromAS(Constants.USER_NAME);
-            const profileImage = await Commons.getFromAS(Constants.USER_PROFILE_IMAGE);
-            setIsLoggedIn(true);
-            setUser({
-                name: name || 'User',
-                profileImage: profileImage || null,
-            });
-        } else {
-            setIsLoggedIn(false);
-            setUser({ name: '', profileImage: null });
-        }
-    };
-
-    useFocusEffect(
-        React.useCallback(() => {
-            loadUserData();
-        }, [])
-    );
+export default function CategoryDetailScreen({ route, navigation }) {
     const { category } = route.params;
     const [gyms, setGyms] = useState([]);
+    const [filteredGyms, setFilteredGyms] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [query, setQuery] = useState('');
+    const { t } = useTranslation();
 
     useEffect(() => {
         loadCategoryGyms();
     }, [category]);
+
+    // debounce search for better UX
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            applySearchFilter(query);
+        }, 250);
+        return () => clearTimeout(timer);
+    }, [query, gyms]);
 
     const loadCategoryGyms = async () => {
         setIsLoading(true);
         try {
             const response = await ServerOperations.getCustomers(category);
 
-            if (response.res && response.data) {
-                // Filter gyms by category
-                const filteredGyms = response.data.filter(gym =>
-                    gym.NAME &&
-                    gym.BRANCHES &&
-                    gym.BRANCHES.length > 0 &&
-                    gym.CATEGORY === category
-                );
-                setGyms(filteredGyms);
+            // Server may return either a raw array of gyms or an object { res, data }
+            let list = [];
+            if (Array.isArray(response)) {
+                list = response;
+            } else if (response && Array.isArray(response.data)) {
+                list = response.data;
             }
+
+            // Defensive: ensure we always have an array
+            if (!Array.isArray(list)) list = [];
+
+            // Filter gyms by category (some responses may include mixed results)
+            const filteredGyms = list.filter(gym =>
+                (gym.NAME || gym.name) &&
+                (gym.BRANCHES && gym.BRANCHES.length > 0) &&
+                ((gym.CATEGORY || gym.category) === category)
+            );
+
+            setGyms(filteredGyms);
+            setFilteredGyms(filteredGyms);
         } catch (error) {
             console.error('Error loading category gyms:', error);
+            setGyms([]);
+            setFilteredGyms([]);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleMenuPress = () => navigation.navigate('Menu');
+    const applySearchFilter = (text) => {
+        if (!text || text.trim().length === 0) {
+            setFilteredGyms(gyms);
+            return;
+        }
 
-    const handleLogin = () => navigation.navigate('Login');
+        const q = text.toLowerCase();
+        const results = gyms.filter(gym => {
+            const parts = [];
+            // server props could be uppercase or lowercase — check both
+            parts.push((gym.NAME || gym.name || '').toString());
+            parts.push((gym.CATEGORY || gym.category || '').toString());
+            parts.push((gym.DESCRIPTION || gym.description || '').toString());
+            // branches and services may be arrays
+            if (gym.BRANCHES && Array.isArray(gym.BRANCHES)) {
+                parts.push(gym.BRANCHES.map(b => JSON.stringify(b)).join(' '));
+            }
+            if (gym.SERVICES && Array.isArray(gym.SERVICES)) {
+                // gym.SERVICES can be array of strings or objects {ID, DESC}
+                const servicesText = gym.SERVICES.map(s => (typeof s === 'string' ? s : (s.DESC || s.desc || s.NAME || s.name || ''))).join(' ');
+                parts.push(servicesText);
+            }
 
-    const handleLogout = async () => {
-        await Commons.removeFromAS(Constants.IS_LOGGED_IN);
-        await Commons.removeFromAS(Constants.USER_NAME);
-        await Commons.removeFromAS(Constants.USER_EMAIL);
-        await Commons.removeFromAS(Constants.USER_PHONE);
-        await Commons.removeFromAS(Constants.USER_MEMBER_SINCE);
-        await Commons.removeFromAS(Constants.USER_PROFILE_IMAGE);
-        setIsLoggedIn(false);
-        setUser({ name: '', profileImage: null });
+            const hay = parts.join(' ').toLowerCase();
+            return hay.indexOf(q) !== -1;
+        });
+
+        setFilteredGyms(results);
     };
 
     return (
         <ScreenBackground>
-            <View style={styles.topBar}>
-                <View style={styles.leftSection}>
-                    <TouchableOpacity style={styles.menuButton} onPress={handleMenuPress}>
-                        <Text style={styles.menuIcon}>☰</Text>
-                    </TouchableOpacity>
-
-                    <View style={styles.logoContainer}>
-                        <Image source={require('../../assets/icon.png')} style={styles.logoImage} resizeMode="contain" />
-                    </View>
-                </View>
-
-                {!isLoggedIn ? (
-                    <View style={styles.authButtonsTop}>
-                        <TouchableOpacity style={styles.loginButtonTop} onPress={handleLogin}>
-                            <Text style={styles.loginButtonTopText}>Login</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.registerButtonTop} onPress={() => navigation.navigate('Register')}>
-                            <Text style={styles.registerButtonTopText}>Register</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    <TouchableOpacity style={styles.userAvatarButton} onPress={() => navigation.navigate('UserInfo')}>
-                        <Text style={styles.userNameText}>{user.name}</Text>
-                        {user.profileImage ? (
-                            <Image source={{ uri: user.profileImage }} style={styles.userAvatarImage} />
-                        ) : (
-                            <View style={styles.userAvatar}>
-                                <Text style={styles.userAvatarText}>{user.name.split(' ').map(n => n[0]).join('')}</Text>
-                            </View>
-                        )}
-                    </TouchableOpacity>
-                )}
-            </View>
-
             <View style={styles.container}>
                 <LoadingOverlay visible={isLoading} message="Loading gyms..." />
 
                 <View style={styles.header}>
-                    <Text style={styles.title}>{category} Gyms</Text>
+                    <Text style={styles.title}>{t(`category_${category.toLowerCase()}`)}</Text>
                     <Text style={styles.description}>
-                        {categoryDescriptions[category]}
+                        {t(categoryDescriptions[category])}
                     </Text>
-                    <Text style={styles.count}>{gyms.length} gyms available</Text>
+                    <Text style={styles.count}>{filteredGyms.length} {t('gyms')}</Text>
+
+                    <View style={styles.searchContainer}>
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder={t('search_gyms_or_amenities')}
+                            placeholderTextColor={theme.colors.textLight}
+                            value={query}
+                            onChangeText={setQuery}
+                            returnKeyType="search"
+                            onSubmitEditing={() => {
+                                Keyboard.dismiss();
+                                applySearchFilter(query);
+                            }}
+                        />
+
+                        {query.length > 0 && (
+                            <TouchableOpacity
+                                style={styles.clearButton}
+                                onPress={() => setQuery('')}
+                            >
+                                <Text style={styles.clearText}>✕</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 </View>
 
                 <FlatList
-                    data={gyms}
+                    data={filteredGyms}
                     keyExtractor={(item) => item.ID ? item.ID.toString() : Math.random().toString()}
                     renderItem={({ item }) => (
-                        <GymCard gym={item} />
+                        <GymCard
+                            gym={item}
+                            transparent
+                            onPress={() => navigation.navigate('GymDetails', {
+                                gymId: item.ID
+                            })}
+                        />
                     )}
                     contentContainerStyle={styles.list}
                     showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={() => (
+                        <View style={styles.emptyState}>
+                            <View style={styles.emptyCard}>
+                                <Text style={styles.emptyTitle}>{t('no_gyms_found')}</Text>
+                                <Text style={styles.emptySub}>
+                                    {query ? t('try_different_keyword') : t('no_gyms_in_category')}
+                                </Text>
+                            </View>
+                        </View>
+                    )}
                 />
             </View>
         </ScreenBackground>
@@ -161,7 +181,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
     },
     header: {
-        backgroundColor: theme.colors.card,
+        backgroundColor: Commons.hexToRgba(theme.colors.card, 0.7),
         padding: theme.spacing.lg,
         borderBottomWidth: 1,
         borderBottomColor: theme.colors.border,
@@ -185,115 +205,56 @@ const styles = StyleSheet.create({
     list: {
         padding: theme.spacing.md,
     },
-    topBar: {
-        backgroundColor: Commons.hexToRgba(theme.colors.primary, 0.9),
+    searchContainer: {
+        marginTop: theme.spacing.md,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: theme.spacing.sm,
-        paddingVertical: theme.spacing.sm,
-        elevation: 6,
-        shadowColor: theme.colors.secondary,
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
     },
-    leftSection: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.sm,
-    },
-    menuButton: {
-        padding: theme.spacing.xs,
-        width: 45,
-        height: 45,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: theme.borderRadius.sm,
-        backgroundColor: theme.colors.primaryDark,
-    },
-    menuIcon: {
-        fontSize: 24,
-        color: theme.colors.white,
-    },
-    logoContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    logoImage: {
-        height: 65,
-        width: 100,
-    },
-    authButtonsTop: {
-        flexDirection: 'row',
-        gap: theme.spacing.xs,
-        alignItems: 'center',
-    },
-    loginButtonTop: {
-        backgroundColor: theme.colors.card,
-        paddingHorizontal: theme.spacing.lg,
-        paddingVertical: 10,
-        borderRadius: theme.borderRadius.md,
-        alignItems: 'center',
-        elevation: 2,
-        shadowColor: theme.colors.secondary,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 2,
-    },
-    registerButtonTop: {
-        backgroundColor: theme.colors.darkRed,
-        paddingHorizontal: theme.spacing.lg,
-        paddingVertical: 10,
-        borderRadius: theme.borderRadius.md,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-    },
-    loginButtonTopText: {
+    searchInput: {
+        flex: 1,
+        height: 44,
+        backgroundColor: Commons.hexToRgba(theme.colors.background, 0.45),
         color: theme.colors.text,
-        fontWeight: '700',
-        fontSize: 13,
-    },
-    registerButtonTopText: {
-        color: theme.colors.white,
-        fontWeight: '700',
-        fontSize: 13,
-    },
-    userAvatarButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: theme.spacing.xs,
-        gap: theme.spacing.sm,
-    },
-    userNameText: {
-        color: theme.colors.white,
+        borderRadius: theme.borderRadius.md,
+        paddingHorizontal: theme.spacing.md,
         fontSize: theme.fontSize.md,
-        fontWeight: '600',
+        borderWidth: 1,
+        borderColor: Commons.hexToRgba(theme.colors.border, 0.6),
+        ...Platform.select({
+            ios: { shadowColor: theme.colors.secondary, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 4 },
+            android: { elevation: 2 },
+        }),
     },
-    userAvatar: {
-        width: 45,
-        height: 45,
-        borderRadius: 23,
+    clearButton: {
+        marginLeft: theme.spacing.sm,
         backgroundColor: theme.colors.card,
+        height: 40,
+        width: 40,
+        borderRadius: theme.borderRadius.full,
         justifyContent: 'center',
         alignItems: 'center',
-        elevation: 2,
-        shadowColor: theme.colors.secondary,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 2,
     },
-    userAvatarText: {
-        fontSize: theme.fontSize.md,
-        fontWeight: 'bold',
-        color: theme.colors.primary,
+    clearText: {
+        color: theme.colors.textLight,
+        fontSize: 18,
     },
-    userAvatarImage: {
-        width: 45,
-        height: 45,
-        borderRadius: 23,
-        borderWidth: 2,
-        borderColor: theme.colors.white,
+    emptyState: {
+        marginTop: theme.spacing.xl,
+        alignItems: 'center',
     },
+    emptyCard: {
+        backgroundColor: Commons.hexToRgba(theme.colors.card, 0.6),
+        padding: theme.spacing.lg,
+        borderRadius: theme.borderRadius.md,
+    },
+    emptyTitle: {
+        color: theme.colors.text,
+        fontSize: theme.fontSize.lg,
+        fontWeight: '700',
+        marginBottom: theme.spacing.sm,
+    },
+    emptySub: {
+        color: theme.colors.textLight,
+        fontSize: theme.fontSize.sm,
+    }
 });

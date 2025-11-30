@@ -9,6 +9,16 @@ import MenuScreen from '../screens/MenuScreen';
 import UserInfoScreen from '../screens/UserInfoScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
+import GymMainScreen from '../screens/GymMainScreen';
+import GymGeneralInfoScreen from '../screens/GymGeneralInfoScreen';
+import GymServicesScreen from '../screens/GymServicesScreen';
+import GymBranchesScreen from '../screens/GymBranchesScreen';
+import GymSubscriptionsScreen from '../screens/GymSubscriptionsScreen';
+import GymTrainersScreen from '../screens/GymTrainersScreen';
+import GymPromosScreen from '../screens/GymPromosScreen';
+import GymDetailsScreen from '../screens/GymDetailsScreen';
+import GymMembersScreen from '../screens/GymMembersScreen';
+import MySubscriptionsScreen from '../screens/MySubscriptionsScreen';
 import { theme } from '../utils/theme';
 import * as Commons from '../utils/Commons';
 
@@ -67,6 +77,56 @@ export default function AppNavigator() {
                     name="EditProfile"
                     component={EditProfileScreen}
                     options={{ title: 'Edit Profile' }}
+                />
+                <Stack.Screen
+                    name="GymMain"
+                    component={GymMainScreen}
+                    options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                    name="GymGeneralInfo"
+                    component={GymGeneralInfoScreen}
+                    options={{ title: 'General Information' }}
+                />
+                <Stack.Screen
+                    name="GymServices"
+                    component={GymServicesScreen}
+                    options={{ title: 'Services' }}
+                />
+                <Stack.Screen
+                    name="GymBranches"
+                    component={GymBranchesScreen}
+                    options={{ title: 'Branches' }}
+                />
+                <Stack.Screen
+                    name="GymSubscriptions"
+                    component={GymSubscriptionsScreen}
+                    options={{ title: 'Subscriptions' }}
+                />
+                <Stack.Screen
+                    name="GymTrainers"
+                    component={GymTrainersScreen}
+                    options={{ title: 'Trainers' }}
+                />
+                <Stack.Screen
+                    name="GymPromos"
+                    component={GymPromosScreen}
+                    options={{ title: 'Promos' }}
+                />
+                <Stack.Screen
+                    name="GymMembers"
+                    component={GymMembersScreen}
+                    options={{ title: 'Members' }}
+                />
+                <Stack.Screen
+                    name="MySubscriptions"
+                    component={MySubscriptionsScreen}
+                    options={{ title: 'My Subscriptions' }}
+                />
+                <Stack.Screen
+                    name="GymDetails"
+                    component={GymDetailsScreen}
+                    options={{ title: 'Gym Details' }}
                 />
             </Stack.Navigator>
         </NavigationContainer>

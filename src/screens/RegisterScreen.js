@@ -9,6 +9,7 @@ import {
     Alert,
 } from 'react-native';
 import { theme } from '../utils/theme';
+import { useTranslation } from '../utils/Strings';
 import ScreenBackground from '../components/ScreenBackground';
 import * as ServerOperations from '../utils/ServerOperations';
 
@@ -23,20 +24,22 @@ export default function RegisterScreen({ navigation }) {
     const [isVerifying, setIsVerifying] = useState(false);
     const [isSendingOtp, setIsSendingOtp] = useState(false);
 
+    const { t } = useTranslation();
+
     const handleSendOtp = async () => {
         if (!fullName || !email || !phone || !password || !confirmPassword) {
-            Alert.alert('Error', 'Please fill in all fields');
+            Alert.alert(t('error'), t('please_fill_all_fields'));
             return;
         }
         if (password !== confirmPassword) {
-            Alert.alert('Error', 'Passwords do not match');
+            Alert.alert(t('error'), t('passwords_mismatch'));
             return;
         }
 
         // Email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
-            Alert.alert('Error', 'Please enter a valid email address');
+            Alert.alert(t('error'), t('invalid_email'));
             return;
         }
 
@@ -46,15 +49,15 @@ export default function RegisterScreen({ navigation }) {
 
         if (response && response.res) {
             setOtpSent(true);
-            Alert.alert('OTP Sent', `A verification code has been sent to ${email}`);
+            Alert.alert(t('success'), t('otp_sent'));
         } else {
-            Alert.alert('Error', response?.msg || 'Failed to send OTP. Please try again.');
+            Alert.alert(t('error'), response?.msg || t('registration_failed'));
         }
     };
 
     const handleVerifyAndRegister = async () => {
         if (!otp || otp.trim().length === 0) {
-            Alert.alert('Error', 'Please enter the OTP');
+            Alert.alert(t('error'), t('please_fill_all_fields'));
             return;
         }
 
@@ -67,15 +70,15 @@ export default function RegisterScreen({ navigation }) {
             setIsVerifying(false);
 
             if (registerResponse && registerResponse.res) {
-                Alert.alert('Success', 'Registration successful. Please log in.', [
+                Alert.alert(t('success'), t('registration_success'), [
                     { text: 'OK', onPress: () => navigation.goBack() },
                 ]);
             } else {
-                Alert.alert('Error', registerResponse?.msg || 'Registration failed. Please try again.');
+                Alert.alert(t('error'), registerResponse?.msg || t('registration_failed'));
             }
         } else {
             setIsVerifying(false);
-            Alert.alert('Error', verifyResponse?.msg || 'Invalid OTP. Please try again.');
+            Alert.alert(t('error'), verifyResponse?.msg || t('invalid_otp'));
         }
     };
 
@@ -86,9 +89,9 @@ export default function RegisterScreen({ navigation }) {
 
         if (response && response.res) {
             setOtp('');
-            Alert.alert('OTP Resent', 'A new verification code has been sent to your email');
+            Alert.alert(t('success'), t('otp_resent'));
         } else {
-            Alert.alert('Error', response?.msg || 'Failed to resend OTP. Please try again.');
+            Alert.alert(t('error'), response?.msg || t('registration_failed'));
         }
     };
 
@@ -96,56 +99,55 @@ export default function RegisterScreen({ navigation }) {
         <ScreenBackground>
             <ScrollView style={styles.container}>
                 <View style={styles.content}>
-                    <Text style={styles.title}>Create Account</Text>
-                    <Text style={styles.subtitle}>Join Fitmap to find your perfect gym</Text>
+                    <Text style={styles.title}>{t('create_account')}</Text>
 
                     <View style={styles.form}>
-                        <Text style={styles.label}>Full Name</Text>
+                        <Text style={styles.label}>{t('full_name')}</Text>
                         <TextInput
                             style={styles.input}
                             value={fullName}
                             onChangeText={setFullName}
-                            placeholder="Enter your full name"
+                            placeholder={t('enter_full_name')}
                             placeholderTextColor={theme.colors.textLight}
                         />
 
-                        <Text style={styles.label}>Email</Text>
+                        <Text style={styles.label}>{t('email')}</Text>
                         <TextInput
                             style={styles.input}
                             value={email}
                             onChangeText={setEmail}
-                            placeholder="Enter your email"
+                            placeholder={t('enter_email')}
                             placeholderTextColor={theme.colors.textLight}
                             keyboardType="email-address"
                             autoCapitalize="none"
                         />
 
-                        <Text style={styles.label}>Phone</Text>
+                        <Text style={styles.label}>{t('phone')}</Text>
                         <TextInput
                             style={styles.input}
                             value={phone}
                             onChangeText={setPhone}
-                            placeholder="Enter your phone number"
+                            placeholder={t('enter_phone')}
                             placeholderTextColor={theme.colors.textLight}
                             keyboardType="phone-pad"
                         />
 
-                        <Text style={styles.label}>Password</Text>
+                        <Text style={styles.label}>{t('password')}</Text>
                         <TextInput
                             style={styles.input}
                             value={password}
                             onChangeText={setPassword}
-                            placeholder="Create a password"
+                            placeholder={t('create_password')}
                             placeholderTextColor={theme.colors.textLight}
                             secureTextEntry={true}
                         />
 
-                        <Text style={styles.label}>Confirm Password</Text>
+                        <Text style={styles.label}>{t('confirm_password')}</Text>
                         <TextInput
                             style={styles.input}
                             value={confirmPassword}
                             onChangeText={setConfirmPassword}
-                            placeholder="Confirm your password"
+                            placeholder={t('confirm_password')}
                             placeholderTextColor={theme.colors.textLight}
                             secureTextEntry={true}
                             editable={!otpSent}
@@ -153,20 +155,20 @@ export default function RegisterScreen({ navigation }) {
 
                         {otpSent && (
                             <>
-                                <Text style={styles.label}>Verification Code</Text>
+                                <Text style={styles.label}>{t('verification_code')}</Text>
                                 <TextInput
                                     style={styles.input}
                                     value={otp}
                                     onChangeText={setOtp}
-                                    placeholder="Enter 6-digit OTP"
+                                    placeholder={t('enter_otp')}
                                     placeholderTextColor={theme.colors.textLight}
                                     keyboardType="number-pad"
-                                    maxLength={6}
+                                    maxLength={4}
                                 />
 
                                 <TouchableOpacity style={styles.resendLink} onPress={handleResendOtp} disabled={isSendingOtp}>
                                     <Text style={styles.resendLinkText}>
-                                        {isSendingOtp ? 'Sending...' : 'Didn\'t receive code? Resend OTP'}
+                                        {isSendingOtp ? t('sending') : t('resend_otp')}
                                     </Text>
                                 </TouchableOpacity>
                             </>
@@ -179,7 +181,7 @@ export default function RegisterScreen({ navigation }) {
                                 disabled={isSendingOtp}
                             >
                                 <Text style={styles.registerButtonText}>
-                                    {isSendingOtp ? 'Sending OTP...' : 'Send Verification Code'}
+                                    {isSendingOtp ? t('sending_otp') : t('send_verification_code')}
                                 </Text>
                             </TouchableOpacity>
                         ) : (
@@ -189,14 +191,14 @@ export default function RegisterScreen({ navigation }) {
                                 disabled={isVerifying}
                             >
                                 <Text style={styles.registerButtonText}>
-                                    {isVerifying ? 'Verifying...' : 'Verify & Register'}
+                                    {isVerifying ? t('verifying') : t('verify_register')}
                                 </Text>
                             </TouchableOpacity>
                         )}
 
                         <TouchableOpacity style={styles.loginLink} onPress={() => navigation.goBack()}>
                             <Text style={styles.loginLinkText}>
-                                Already have an account? <Text style={styles.loginLinkBold}>Login</Text>
+                                {t('already_have_account')} <Text style={styles.loginLinkBold}>{t('login')}</Text>
                             </Text>
                         </TouchableOpacity>
                     </View>

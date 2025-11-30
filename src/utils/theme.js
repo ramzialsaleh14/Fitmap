@@ -13,7 +13,9 @@ export const theme = {
         border: '#2A2A2A',         // Dark gray borders
         error: '#FF4444',
         success: '#2ECC71',
-        platinum: '#E5E4E2',
+        // More blue-ish platinum for a cooler, clearer metal look
+        // (slightly deeper / more saturated than previous value)
+        platinum: '#9ae7fcff',
         gold: '#FFD700',
         silver: '#C0C0C0',
         bronze: '#CD7F32',

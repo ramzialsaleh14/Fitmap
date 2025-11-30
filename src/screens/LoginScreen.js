@@ -8,20 +8,27 @@ import {
     TouchableOpacity,
     Alert,
     Image,
+    Modal,
+    ActivityIndicator,
 } from 'react-native';
 import { theme } from '../utils/theme';
 import ScreenBackground from '../components/ScreenBackground';
 import * as ServerOperations from '../utils/ServerOperations';
 import * as Commons from '../utils/Commons';
 import * as Constants from '../utils/Constants';
+import { useTranslation } from '../utils/Strings';
 
 export default function LoginScreen({ navigation }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showForgotModal, setShowForgotModal] = useState(false);
+    const [forgotEmail, setForgotEmail] = useState('');
+    const [isRetrieving, setIsRetrieving] = useState(false);
+    const { t } = useTranslation();
 
     const handleLogin = async () => {
         if (!email || !password) {
-            Alert.alert('Error', 'Please fill in all fields');
+            Alert.alert(t('error'), t('please_fill_all_fields'));
             return;
         }
         // TODO: Add actual login authentication
@@ -34,12 +41,17 @@ export default function LoginScreen({ navigation }) {
             await Commons.saveToAS(Constants.USER_NAME, resp.name || 'User');
             await Commons.saveToAS(Constants.USER_PHONE, resp.phone || '');
             await Commons.saveToAS(Constants.USER_PROFILE_IMAGE, resp.photo || '');
-            await Commons.saveToAS(Constants.USER_MEMBER_SINCE, resp.memberSince || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
+            await Commons.saveToAS(Constants.USER_MEMBER_SINCE, resp.date);
+            await Commons.saveToAS(Constants.USER_TYPE, resp.type);
 
-            // Navigate to the main app screen or dashboard
-            navigation.navigate('Main');
+            // Navigate based on user type
+            if (resp.type === 'Gym') {
+                navigation.navigate('GymMain');
+            } else {
+                navigation.navigate('Main');
+            }
         } else {
-            Alert.alert('Error', resp.msg || 'Login failed. Please try again.');
+            Alert.alert(t('error'), resp.msg || t('login_failed'));
         }
     };
 
@@ -47,37 +59,37 @@ export default function LoginScreen({ navigation }) {
         <ScreenBackground>
             <ScrollView style={styles.container}>
                 <View style={styles.content}>
-                    <Text style={styles.title}>Welcome Back</Text>
-                    <Text style={styles.subtitle}>Login to your account</Text>
+                    <Text style={styles.title}>{t('welcome_back')}</Text>
+                    <Text style={styles.subtitle}>{t('login_to_account')}</Text>
 
                     <View style={styles.form}>
-                        <Text style={styles.label}>Email</Text>
+                        <Text style={styles.label}>{t('email')}</Text>
                         <TextInput
                             style={styles.input}
                             value={email}
                             onChangeText={setEmail}
-                            placeholder="Enter your email"
+                            placeholder={t('enter_email')}
                             placeholderTextColor={theme.colors.textLight}
                             keyboardType="email-address"
                             autoCapitalize="none"
                         />
 
-                        <Text style={styles.label}>Password</Text>
+                        <Text style={styles.label}>{t('password')}</Text>
                         <TextInput
                             style={styles.input}
                             value={password}
                             onChangeText={setPassword}
-                            placeholder="Enter your password"
+                            placeholder={t('enter_password')}
                             placeholderTextColor={theme.colors.textLight}
                             secureTextEntry={true}
                         />
 
-                        <TouchableOpacity style={styles.forgotPassword}>
-                            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                        <TouchableOpacity style={styles.forgotPassword} onPress={() => { setForgotEmail(email || ''); setShowForgotModal(true); }}>
+                            <Text style={styles.forgotPasswordText}>{t('forgot_password')}</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-                            <Text style={styles.loginButtonText}>Login</Text>
+                            <Text style={styles.loginButtonText}>{t('login')}</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -85,12 +97,69 @@ export default function LoginScreen({ navigation }) {
                             onPress={() => navigation.navigate('Register')}
                         >
                             <Text style={styles.registerLinkText}>
-                                Don't have an account? <Text style={styles.registerLinkBold}>Register</Text>
+                                {t('dont_have_account')} <Text style={styles.registerLinkBold}>{t('register')}</Text>
                             </Text>
                         </TouchableOpacity>
                     </View>
                 </View>
             </ScrollView>
+
+            {/* Forgot Password Modal */}
+            <Modal
+                visible={showForgotModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowForgotModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <Text style={styles.modalTitle}>{t('restore_password')}</Text>
+
+                        <Text style={styles.label}>{t('email')}</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={forgotEmail}
+                            onChangeText={setForgotEmail}
+                            placeholder={t('confirm_email')}
+                            placeholderTextColor={theme.colors.textLight}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                        />
+
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={[styles.button, styles.cancelButton]}
+                                onPress={() => setShowForgotModal(false)}
+                            >
+                                <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.button, styles.saveButton]}
+                                onPress={async () => {
+                                    if (!forgotEmail) return Alert.alert(t('error'), t('please_enter_email'));
+                                    setIsRetrieving(true);
+                                    try {
+                                        const resp = await ServerOperations.restorePassword(forgotEmail);
+                                        if (resp && resp.res) {
+                                            Alert.alert(t('success'), t('password_sent'), [{ text: 'OK', onPress: () => setShowForgotModal(false) }]);
+                                        } else {
+                                            Alert.alert(t('error'), resp.msg || t('failed_restore'));
+                                        }
+                                    } catch (error) {
+                                        console.error('Error retrieving password:', error);
+                                        Alert.alert(t('error'), t('failed_restore'));
+                                    } finally {
+                                        setIsRetrieving(false);
+                                    }
+                                }}
+                            >
+                                {isRetrieving ? <ActivityIndicator color={theme.colors.white} /> : <Text style={styles.saveButtonText}>{t('restore_password')}</Text>}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </ScreenBackground>
     );
 }
@@ -218,5 +287,60 @@ const styles = StyleSheet.create({
     registerLinkBold: {
         color: theme.colors.primary,
         fontWeight: 'bold',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: theme.spacing.lg,
+    },
+    modalContainer: {
+        width: '100%',
+        backgroundColor: theme.colors.card,
+        borderRadius: theme.borderRadius.lg,
+        padding: theme.spacing.lg,
+        elevation: 5,
+    },
+    modalTitle: {
+        fontSize: theme.fontSize.lg,
+        fontWeight: 'bold',
+        color: theme.colors.text,
+        marginBottom: theme.spacing.sm,
+    },
+    modalSubtitle: {
+        fontSize: theme.fontSize.sm,
+        color: theme.colors.textLight,
+        marginBottom: theme.spacing.md,
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        marginTop: theme.spacing.md,
+    },
+    button: {
+        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.md,
+        borderRadius: theme.borderRadius.md,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: theme.spacing.sm,
+    },
+    cancelButton: {
+        backgroundColor: theme.colors.background,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    cancelButtonText: {
+        color: theme.colors.text,
+        fontWeight: '600',
+    },
+    saveButton: {
+        backgroundColor: theme.colors.primary,
+        minWidth: 140,
+    },
+    saveButtonText: {
+        color: theme.colors.white,
+        fontWeight: '700',
     },
 });

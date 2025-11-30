@@ -100,16 +100,13 @@ const convertM4aToMp3 = (text) => {
 const safeEncodeURIComponent = (value) => {
     const stringValue = String(value || '');
     const convertedNumbers = convertArabicToEnglishNumbers(stringValue);
-    const convertedExtensions = convertM4aToMp3(convertedNumbers);
-    return encodeURIComponent(convertedExtensions);
+    return encodeURIComponent(convertedNumbers);
 };
 
 export const pickHttpRequest = async (params) => {
     /* Send request */
     // Convert Arabic numbers to English numbers in the entire params string
     params = convertArabicToEnglishNumbers(params);
-    // Convert .m4a extensions to .mp3 in the entire params string
-    params = convertM4aToMp3(params);
 
     const TIMEOUT = 20000;
     const user = safeEncodeURIComponent(await Commons.getFromAS("userID"));
@@ -264,7 +261,7 @@ export const saveProfileChanges = async (email, name, phone, photo) => {
         return await response.json();
     }
 
-    return { res: false, msg: 'Failed to update profile. Please try again.' };
+    return null;
 };
 
 export const sendEmailOtp = async (email) => {
@@ -284,8 +281,29 @@ export const sendEmailOtp = async (email) => {
         return await response.json();
     }
 
-    return { res: false, msg: 'Failed to send OTP. Please try again.' };
+    return null;
 };
+
+export const restorePassword = async (email) => {
+    let params = "";
+    params += `action=${Constants.RESTORE_PASSWORD}`;
+    params += `&EMAIL=${safeEncodeURIComponent(email)}`;
+
+    const response = await pickHttpRequest(params);
+
+    if (response === Constants.networkError_code) {
+        return { res: false, msg: 'Network error' };
+    }
+    if (response.ok) {
+        const jsonResponse = await response.json();
+        return jsonResponse;
+    }
+
+    return null;
+};
+
+// Backwards-compatibility: keep old function name as alias
+// Removed deprecated alias in favor of 'restorePassword'.
 
 export const verifyOtp = async (email, otp) => {
     /* Request params */
@@ -305,7 +323,7 @@ export const verifyOtp = async (email, otp) => {
         return await response.json();
     }
 
-    return { res: false, msg: 'Failed to verify OTP. Please try again.' };
+    return null;
 };
 
 export const getCustomers = async (category = '') => {
@@ -322,15 +340,10 @@ export const getCustomers = async (category = '') => {
         return { res: false, msg: 'Network error. Please check your connection.', data: [] };
     }
     if (response.ok) {
-        const jsonResponse = await response.json();
-        // Ensure we return an array
-        if (Array.isArray(jsonResponse)) {
-            return { res: true, data: jsonResponse };
-        }
-        return { res: true, data: jsonResponse.data || [] };
+        return await response.json();
     }
 
-    return { res: false, msg: 'Failed to fetch gyms.', data: [] };
+    return null;
 };
 
 export const getCustomerDetails = async (customer, branch) => {
@@ -352,6 +365,118 @@ export const getCustomerDetails = async (customer, branch) => {
     }
 
     return null;
+};
+
+export const getCustomerInfo = async (email, customer) => {
+    /* Request params */
+    let params = "";
+    params += `action=${Constants.GET_CUSTOMER_INFO}`;
+    params += `&EMAIL=${safeEncodeURIComponent(email)}`;
+    params += `&CUSTOMER=${safeEncodeURIComponent(customer)}`;
+
+    /* Send request */
+    const response = await pickHttpRequest(params);
+
+    /* Check response */
+    if (response === Constants.networkError_code) {
+        return { res: false, msg: 'Network error', data: null };
+    }
+    if (response.ok) {
+        const jsonResponse = await response.json();
+        return jsonResponse;
+    }
+
+    return null;
+};
+
+export const getMySubscriptions = async (email) => {
+    let params = "";
+    params += `action=${Constants.GET_MY_SUBSCRIPTIONS}`;
+    params += `&EMAIL=${safeEncodeURIComponent(email)}`;
+
+    const response = await pickHttpRequest(params);
+
+    if (response === Constants.networkError_code) {
+        return { res: false, msg: 'Network error', data: [] };
+    }
+    if (response.ok) {
+        try {
+            const jsonResponse = await response.json();
+            return jsonResponse;
+        } catch (e) {
+            console.warn('getMySubscriptions: failed to parse json', e);
+            return { res: false, msg: 'Invalid response', data: [] };
+        }
+    }
+
+    return null;
+};
+
+export const getServices = async () => {
+    let params = "";
+    params += `action=${Constants.GET_SERVICES}`;
+
+    const response = await pickHttpRequest(params);
+    if (response === Constants.networkError_code) {
+        return { res: false, msg: 'Network error', data: [] };
+    }
+
+
+    if (response.ok) {
+        const jsonResponse = await response.json();
+        // Expect array of {ID, DESC}
+        return jsonResponse;
+    }
+
+    return null;
+};
+
+export const saveGymData = async (email, dataType, data) => {
+    /* Request params */
+    let params = "";
+    params += `action=${Constants.SAVE_GYM_DATA}`;
+    params += `&EMAIL=${safeEncodeURIComponent(email)}`;
+    params += `&DATA.TYPE=${safeEncodeURIComponent(dataType)}`;
+    params += `&GYM.DATA=${safeEncodeURIComponent(JSON.stringify(data))}`;
+
+    /* Send request */
+    const response = await pickHttpRequest(params);
+
+    /* Check response */
+    if (response === Constants.networkError_code) {
+        return { res: false, msg: 'Network error' };
+    }
+    if (response.ok) {
+        const jsonResponse = await response.json();
+        return jsonResponse;
+    }
+
+    return null;
+};
+
+export const subToGym = async (userEmail, gymId, period, price, startDate) => {
+    try {
+        let params = "";
+        params += `action=${Constants.SUBSCRIBE_TO_GYM}`;
+        params += `&EMAIL=${safeEncodeURIComponent(userEmail || '')}`;
+        params += `&GYM=${safeEncodeURIComponent(gymId || '')}`;
+        params += `&PERIOD=${safeEncodeURIComponent(period || '')}`;
+        params += `&PRICE=${safeEncodeURIComponent(price || '')}`;
+        params += `&START.DATE=${safeEncodeURIComponent(startDate || '')}`;
+
+        const response = await pickHttpRequest(params);
+
+        if (response === Constants.networkError_code) {
+            return { res: false, msg: 'Network error. Please check your connection.' };
+        }
+        if (response.ok) {
+            return await response.json();
+        }
+        return null;
+    } catch (e) {
+        console.error('subToGym error', e);
+        return { res: false, msg: 'Unexpected error' };
+    }
 };
 
 

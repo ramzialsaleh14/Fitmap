@@ -31,6 +31,7 @@ export const USER_PHONE = "USER_PHONE";
 export const USER_MEMBER_SINCE = "USER_MEMBER_SINCE";
 export const USER_PROFILE_IMAGE = "USER_PROFILE_IMAGE";
 export const USER_PASSWORD = "USER_PASSWORD";
+export const USER_TYPE = "USER_TYPE";
 export const USE_LOCATION = "USE_LOCATION";
 
 // Codes
@@ -45,3 +46,11 @@ export const REGISTER_USER = "REGISTER.USER";
 export const SAVE_PROFILE_CHANGES = "SAVE.PROFILE.CHANGES";
 export const SEND_EMAIL_OTP = "SEND.EMAIL.OTP";
 export const VERIFY_OTP = "VERIFY.OTP";
+export const GET_CUSTOMER_INFO = "GET.CUSTOMER.INFO";
+export const GET_MY_SUBSCRIPTIONS = "GET.MY.SUBSCRIPTIONS";
+export const SAVE_GYM_DATA = "SAVE.GYM.DATA";
+export const GET_SERVICES = "GET.SERVICES";
+export const SUBSCRIBE_TO_GYM = "SUBSCRIBE.TO.GYM";
+export const RESTORE_PASSWORD = "RESTORE.PASSWORD";
+// Key for saved app language (en/ar)
+export const language = "language";

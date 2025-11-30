@@ -1,15 +1,24 @@
 import React from 'react';
 import { TouchableOpacity, Text, View, Image, StyleSheet } from 'react-native';
 import { theme } from '../utils/theme';
+import * as Commons from '../utils/Commons';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useTranslation } from '../utils/Strings';
 
-export default function GymCard({ gym, onPress, showDistance }) {
+export default function GymCard({ gym, onPress, showDistance, transparent = false }) {
     // Extract data from server format
     const gymName = gym.NAME || 'Unnamed Gym';
     const category = gym.CATEGORY || 'Standard';
+    const { t } = useTranslation();
+    const categoryKey = `category_${String(category).toLowerCase().replace(/\s+/g, '_')}`;
     const photos = gym.PHOTOS || [];
     const image = photos.length > 0 ? photos[0] : 'https://via.placeholder.com/300x180?text=No+Image';
     const branches = gym.BRANCHES || [];
     const services = gym.SERVICES || [];
+    const serviceDescriptions = services.map(s => {
+        if (typeof s === 'string') return s;
+        return s?.DESC || s?.desc || s?.NAME || s?.name || '';
+    }).filter(Boolean);
     const subscriptions = gym.SUBSCRIPTIONS || [];
 
     // Get price range from subscriptions
@@ -21,7 +30,7 @@ export default function GymCard({ gym, onPress, showDistance }) {
         if (fees.length === 0) return 'Contact for pricing';
         const min = Math.min(...fees);
         const max = Math.max(...fees);
-        return min === max ? `${min} JOD` : `${min} - ${max} JOD`;
+        return min === max ? `${min} ${t('jod')}` : `${min} - ${max} ${t('jod')}`;
     };
 
     // Get branch IDs
@@ -30,7 +39,7 @@ export default function GymCard({ gym, onPress, showDistance }) {
 
     return (
         <TouchableOpacity
-            style={styles.container}
+            style={[styles.container, transparent && styles.containerTransparent]}
             onPress={onPress}
             activeOpacity={0.8}
         >
@@ -39,21 +48,23 @@ export default function GymCard({ gym, onPress, showDistance }) {
                 <View style={styles.header}>
                     <Text style={styles.name} numberOfLines={1}>{gymName}</Text>
                     <View style={[styles.categoryBadge, styles[`category${category}`]]}>
-                        <Text style={styles.categoryText}>{category}</Text>
+                        <Text style={styles.categoryText}>{t(categoryKey) || category}</Text>
                     </View>
                 </View>
 
                 {showDistance && gym.distance && (
-                    <Text style={styles.distance}>📍 {gym.distance} km away</Text>
+                    <Text style={styles.distance}>
+                        <MaterialIcons name="location-on" size={16} color={theme.colors.primary} /> {gym.distance} km away
+                    </Text>
                 )}
 
                 <Text style={styles.branches} numberOfLines={1}>
                     {branchIdsDisplay}
                 </Text>
 
-                {services.length > 0 && (
-                    <Text style={styles.services}>
-                        {services.join(' • ')}
+                {serviceDescriptions.length > 0 && (
+                    <Text style={styles.services} numberOfLines={1}>
+                        {serviceDescriptions.join(' • ')}
                     </Text>
                 )}
 
@@ -77,6 +88,18 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 3.84,
     },
+    containerTransparent: {
+        backgroundColor: Commons.hexToRgba(theme.colors.card, 0.7),
+        borderRadius: theme.borderRadius.md,
+        marginBottom: theme.spacing.md,
+        overflow: 'hidden',
+        elevation: 1,
+        shadowColor: Commons.hexToRgba(theme.colors.secondary, 0.6),
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 3.84,
+    },
+
     image: {
         width: '100%',
         height: 180,

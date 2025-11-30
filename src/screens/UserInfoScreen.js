@@ -13,9 +13,11 @@ import { theme } from '../utils/theme';
 import ScreenBackground from '../components/ScreenBackground';
 import * as Commons from '../utils/Commons';
 import * as Constants from '../utils/Constants';
+import { useTranslation } from '../utils/Strings';
 
 export default function UserInfoScreen() {
     const navigation = useNavigation();
+    const { t } = useTranslation();
     const [user, setUser] = useState({
         name: '',
         email: '',
@@ -46,14 +48,14 @@ export default function UserInfoScreen() {
         }, [])
     );
 
-    const handleLogout = async () => {
+    const handleLogout = () => {
         Alert.alert(
-            'Logout',
-            'Are you sure you want to logout?',
+            t('confirm_logout_title') || 'Confirm Logout',
+            t('confirm_logout_message') || 'Are you sure you want to logout?',
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('cancel') || 'Cancel', style: 'cancel' },
                 {
-                    text: 'Logout',
+                    text: t('logout'),
                     style: 'destructive',
                     onPress: async () => {
                         await Commons.removeFromAS(Constants.IS_LOGGED_IN);
@@ -63,8 +65,8 @@ export default function UserInfoScreen() {
                         await Commons.removeFromAS(Constants.USER_MEMBER_SINCE);
                         await Commons.removeFromAS(Constants.USER_PROFILE_IMAGE);
                         navigation.navigate('Main');
-                    },
-                },
+                    }
+                }
             ]
         );
     };
@@ -85,38 +87,34 @@ export default function UserInfoScreen() {
                         )}
                     </View>
                     <Text style={styles.name}>{user.name}</Text>
-                    <Text style={styles.memberSince}>Member since {user.memberSince}</Text>
+                    <Text style={styles.memberSince}>{t('member_since')} {user.memberSince}</Text>
                 </View>
 
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Contact Information</Text>
+                    <Text style={styles.sectionTitle}>{t('contact_information')}</Text>
 
                     <View style={styles.infoCard}>
                         <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Email</Text>
+                            <Text style={styles.infoLabel}>{t('email')}</Text>
                             <Text style={styles.infoValue}>{user.email}</Text>
                         </View>
 
                         <View style={styles.divider} />
 
                         <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Phone</Text>
+                            <Text style={styles.infoLabel}>{t('phone')}</Text>
                             <Text style={styles.infoValue}>{user.phone}</Text>
                         </View>
                     </View>
                 </View>
 
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Actions</Text>
-
                     <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('EditProfile')}>
-                        <Text style={styles.actionButtonText}>Edit Profile</Text>
+                        <Text style={styles.actionButtonText}>{t('edit_profile')}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={[styles.actionButton, styles.dangerButton]} onPress={handleLogout}>
-                        <Text style={[styles.actionButtonText, styles.dangerButtonText]}>
-                            Logout
-                        </Text>
+                        <Text style={[styles.actionButtonText, styles.dangerButtonText]}>{t('logout')}</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>

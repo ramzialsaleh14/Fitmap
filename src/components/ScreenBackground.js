@@ -2,7 +2,7 @@ import React from 'react';
 import { ImageBackground, View, StyleSheet } from 'react-native';
 import { theme } from '../utils/theme';
 
-export default function ScreenBackground({ children, style, blurRadius = 0.8, overlayOpacity = 0.45 }) {
+export default function ScreenBackground({ children, style, blurRadius = 0, overlayOpacity = 0 }) {
     return (
         <ImageBackground
             source={require('../../assets/gymbackground.jpg')}
