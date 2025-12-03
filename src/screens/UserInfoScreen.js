@@ -24,11 +24,13 @@ export default function UserInfoScreen() {
         phone: '',
         memberSince: '',
         profileImage: null,
+        type: null,
     });
 
     const loadUserData = async () => {
         const name = await Commons.getFromAS(Constants.USER_NAME);
         const email = await Commons.getFromAS(Constants.USER_EMAIL);
+        const type = await Commons.getFromAS(Constants.USER_TYPE);
         const phone = await Commons.getFromAS(Constants.USER_PHONE);
         const memberSince = await Commons.getFromAS(Constants.USER_MEMBER_SINCE);
         const profileImage = await Commons.getFromAS(Constants.USER_PROFILE_IMAGE);
@@ -39,6 +41,7 @@ export default function UserInfoScreen() {
             phone: phone || 'No phone',
             memberSince: memberSince || 'N/A',
             profileImage: profileImage || null,
+            type: type || null,
         });
     };
 
@@ -91,12 +94,21 @@ export default function UserInfoScreen() {
                 </View>
 
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>{t('contact_information')}</Text>
+                    <Text style={styles.sectionTitle}>{t('user_info')}</Text>
 
                     <View style={styles.infoCard}>
                         <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>{t('email')}</Text>
-                            <Text style={styles.infoValue}>{user.email}</Text>
+                            {((user.type || '').toLowerCase() === 'gym') ? (
+                                <>
+                                    <Text style={styles.infoLabel}>{t('username')}</Text>
+                                    <Text style={styles.infoValue}>{user.name}</Text>
+                                </>
+                            ) : (
+                                <>
+                                    <Text style={styles.infoLabel}>{t('email')}</Text>
+                                    <Text style={styles.infoValue}>{user.email}</Text>
+                                </>
+                            )}
                         </View>
 
                         <View style={styles.divider} />
@@ -109,7 +121,18 @@ export default function UserInfoScreen() {
                 </View>
 
                 <View style={styles.section}>
-                    <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('EditProfile')}>
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => {
+                            // If this is a gym user, open gym general info screen for editing the gym
+                            if ((user.type || '').toLowerCase() === 'gym') {
+                                // pass the user's email so GymGeneralInfoScreen can load gym data
+                                navigation.navigate('GymGeneralInfo', { userEmail: user.email });
+                            } else {
+                                navigation.navigate('EditProfile');
+                            }
+                        }}
+                    >
                         <Text style={styles.actionButtonText}>{t('edit_profile')}</Text>
                     </TouchableOpacity>
 

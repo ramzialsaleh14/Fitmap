@@ -295,6 +295,17 @@ export default function MainScreen() {
                 <LoadingOverlay visible={isLoading} message={loadingMessage} />
 
                 <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                    {/* Search Bar */}
+                    <TouchableOpacity
+                        style={styles.searchBar}
+                        onPress={() => navigation.navigate('Search')}
+                        activeOpacity={0.7}
+                    >
+                        <MaterialIcons name="search" size={20} color={theme.colors.textLight} />
+                        <Text style={styles.searchPlaceholder}>{t('search_gyms_or_amenities')}</Text>
+                        <MaterialIcons name="tune" size={20} color={theme.colors.textLight} />
+                    </TouchableOpacity>
+
                     {/* Featured Gyms */}
                     {gyms.length > 0 && (
                         <View style={styles.section}>
@@ -577,6 +588,25 @@ const styles = StyleSheet.create({
     section: {
         paddingTop: theme.spacing.lg,
         paddingBottom: theme.spacing.md,
+    },
+    searchBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Commons.hexToRgba(theme.colors.card, 0.8),
+        borderRadius: theme.borderRadius.md,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.md,
+        marginHorizontal: theme.spacing.lg,
+        marginTop: theme.spacing.md,
+        marginBottom: theme.spacing.sm,
+        gap: theme.spacing.sm,
+        borderWidth: 1,
+        borderColor: Commons.hexToRgba(theme.colors.border, 0.15),
+    },
+    searchPlaceholder: {
+        flex: 1,
+        color: theme.colors.textLight,
+        fontSize: theme.fontSize.md,
     },
     sectionTitle: {
         fontSize: theme.fontSize.xxl,

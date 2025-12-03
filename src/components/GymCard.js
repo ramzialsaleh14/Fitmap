@@ -9,16 +9,13 @@ export default function GymCard({ gym, onPress, showDistance, transparent = fals
     // Extract data from server format
     const gymName = gym.NAME || 'Unnamed Gym';
     const category = gym.CATEGORY || 'Standard';
-    const { t } = useTranslation();
+    const { t, locale } = useTranslation();
     const categoryKey = `category_${String(category).toLowerCase().replace(/\s+/g, '_')}`;
     const photos = gym.PHOTOS || [];
     const image = photos.length > 0 ? photos[0] : 'https://via.placeholder.com/300x180?text=No+Image';
     const branches = gym.BRANCHES || [];
     const services = gym.SERVICES || [];
-    const serviceDescriptions = services.map(s => {
-        if (typeof s === 'string') return s;
-        return s?.DESC || s?.desc || s?.NAME || s?.name || '';
-    }).filter(Boolean);
+    const serviceDescriptions = services.map(s => Commons.getServiceLabel(s, locale)).filter(Boolean);
     const subscriptions = gym.SUBSCRIPTIONS || [];
 
     // Get price range from subscriptions
@@ -89,12 +86,12 @@ const styles = StyleSheet.create({
         shadowRadius: 3.84,
     },
     containerTransparent: {
-        backgroundColor: Commons.hexToRgba(theme.colors.card, 0.7),
+        backgroundColor: Commons.hexToRgba(theme.colors.card, 0.85),
         borderRadius: theme.borderRadius.md,
         marginBottom: theme.spacing.md,
         overflow: 'hidden',
         elevation: 1,
-        shadowColor: Commons.hexToRgba(theme.colors.secondary, 0.6),
+        shadowColor: Commons.hexToRgba(theme.colors.secondary, 0.75),
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.08,
         shadowRadius: 3.84,

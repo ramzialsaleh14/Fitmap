@@ -222,7 +222,7 @@ export default function GymDetailsScreen({ route, navigation }) {
                                 <View key={index} style={styles.serviceItem}>
                                     <Text style={styles.serviceBullet}>•</Text>
                                     <Text style={styles.serviceText}>
-                                        {typeof service === 'string' ? service : service.DESC || service.NAME}
+                                        {Commons.getServiceLabel(service, locale)}
                                     </Text>
                                 </View>
                             ))}
@@ -249,14 +249,14 @@ export default function GymDetailsScreen({ route, navigation }) {
                                         onPress={() => handleLocationPress(branch.LOCATION)}
                                     >
                                         <MaterialIcons name="location-on" size={18} color={theme.colors.primary} style={styles.locationIcon} />
-                                        <Text style={styles.locationText}>View on Map</Text>
+                                        <Text style={styles.locationText}>{t('view_on_map')}</Text>
                                     </TouchableOpacity>
                                 )}
 
                                 <View style={styles.branchTiming}>
                                     {branch.MEN_FROM && branch.MEN_TO && (
                                         <View style={styles.timingRow}>
-                                            <Text style={styles.timingLabel}>Men Hours:</Text>
+                                            <Text style={styles.timingLabel}>{t('men_hours')}</Text>
                                             <Text style={styles.timingValue}>
                                                 {branch.MEN_FROM} - {branch.MEN_TO}
                                             </Text>
@@ -264,7 +264,7 @@ export default function GymDetailsScreen({ route, navigation }) {
                                     )}
                                     {branch.WOMEN_SECTION === 'Y' && branch.WOMEN_FROM && branch.WOMEN_TO && (
                                         <View style={styles.timingRow}>
-                                            <Text style={styles.timingLabel}>Women Hours:</Text>
+                                            <Text style={styles.timingLabel}>{t('women_hours')}</Text>
                                             <Text style={styles.timingValue}>
                                                 {branch.WOMEN_FROM} - {branch.WOMEN_TO}
                                             </Text>
@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     branchCard: {
-        backgroundColor: Commons.hexToRgba(theme.colors.card, 0.5),
+        backgroundColor: Commons.hexToRgba(theme.colors.card, 0.8),
         borderRadius: theme.borderRadius.md,
         padding: theme.spacing.md,
         marginBottom: theme.spacing.md,
@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
         gap: theme.spacing.sm,
     },
     subscriptionCard: {
-        backgroundColor: Commons.hexToRgba(theme.colors.card, 0.5),
+        backgroundColor: Commons.hexToRgba(theme.colors.card, 0.8),
         borderRadius: theme.borderRadius.md,
         padding: theme.spacing.md,
         minWidth: '45%',
@@ -773,7 +773,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         padding: theme.spacing.md,
-        backgroundColor: Commons.hexToRgba(theme.colors.card, 0.6),
+        backgroundColor: Commons.hexToRgba(theme.colors.card, 0.8),
         borderRadius: theme.borderRadius.sm,
     },
     modalError: {

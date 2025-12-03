@@ -63,12 +63,12 @@ export default function LoginScreen({ navigation }) {
                     <Text style={styles.subtitle}>{t('login_to_account')}</Text>
 
                     <View style={styles.form}>
-                        <Text style={styles.label}>{t('email')}</Text>
+                        <Text style={styles.label}>{t('email_username')}</Text>
                         <TextInput
                             style={styles.input}
                             value={email}
                             onChangeText={setEmail}
-                            placeholder={t('enter_email')}
+                            placeholder={t('enter_email_username')}
                             placeholderTextColor={theme.colors.textLight}
                             keyboardType="email-address"
                             autoCapitalize="none"
@@ -115,7 +115,7 @@ export default function LoginScreen({ navigation }) {
                     <View style={styles.modalContainer}>
                         <Text style={styles.modalTitle}>{t('restore_password')}</Text>
 
-                        <Text style={styles.label}>{t('email')}</Text>
+                        <Text style={styles.label}>{t('email_username')}</Text>
                         <TextInput
                             style={styles.input}
                             value={forgotEmail}

@@ -28,49 +28,103 @@ export default function GymGeneralInfoScreen({ route, navigation }) {
     const [images, setImages] = useState([]);
     const [isUploadingImage, setIsUploadingImage] = useState(false);
 
+    // Helper to extract and set form + images from a gym payload
+    const processGymData = (payload) => {
+        if (!payload) return;
+
+        // Extract non-array fields from gymData and hide id/status
+        const generalInfo = {};
+        // hide internal/managed fields (IDs, status) and free entry code (not shown in general info)
+        const hiddenKeys = new Set([
+            'ID', 'id', 'STATUS', 'status',
+            'FREE_ENTRY_CODE', 'free_entry_code', 'freeentrycode', 'freeEntryCode'
+        ]);
+        Object.keys(payload).forEach(key => {
+            if (!Array.isArray(payload[key]) && !hiddenKeys.has(key)) {
+                generalInfo[key] = payload[key] || '';
+            }
+        });
+
+        // If gymData contains photos (array or @@-joined string), track it separately in state
+        let incomingPhotos = [];
+        if (Array.isArray(payload.PHOTOS) && payload.PHOTOS.length > 0) {
+            incomingPhotos = [...payload.PHOTOS];
+        } else if (typeof payload.PHOTOS === 'string' && payload.PHOTOS.trim().length > 0) {
+            incomingPhotos = payload.PHOTOS.split(/@@/).map(s => s.trim()).filter(Boolean);
+        } else if (Array.isArray(payload.IMAGES) && payload.IMAGES.length > 0) {
+            incomingPhotos = [...payload.IMAGES];
+        } else if (typeof payload.IMAGES === 'string' && payload.IMAGES.trim().length > 0) {
+            incomingPhotos = payload.IMAGES.split(/@@/).map(s => s.trim()).filter(Boolean);
+        } else if (Array.isArray(payload.MEDIA) && payload.MEDIA.length > 0) {
+            incomingPhotos = [...payload.MEDIA];
+        } else if (typeof payload.MEDIA === 'string' && payload.MEDIA.trim().length > 0) {
+            incomingPhotos = payload.MEDIA.split(/@@/).map(s => s.trim()).filter(Boolean);
+        }
+
+        // Normalize incoming photo URLs and ensure they are absolute (prefix attachmentPath if needed)
+        if (incomingPhotos.length > 0) {
+            const normalized = incomingPhotos.map(p => {
+                if (!p) return p;
+                const s = String(p).trim();
+                if (/^(https?:)?\/\//i.test(s)) return s; // already absolute
+                // prefix with attachmentPath
+                return Constants.attachmentPath.replace(/\/$/, '') + '/' + s.replace(/^\//, '');
+            });
+            setImages(normalized);
+        }
+        setFormData(generalInfo);
+
+        // set navigation title if there's a name available
+        try {
+            const title = payload.NAME || payload.EST_NAME || null;
+            if (title) navigation.setOptions({ title });
+        } catch (e) {
+            /* ignore */
+        }
+    };
+
     useEffect(() => {
         if (gymData) {
             // Extract non-array fields from gymData and hide id/status
             const generalInfo = {};
-            const hiddenKeys = new Set(['ID', 'id', 'STATUS', 'status']);
+            // hide internal/managed fields (IDs, status) and free entry code (not shown in general info)
+            const hiddenKeys = new Set([
+                'ID', 'id', 'STATUS', 'status',
+                // different variants of free entry code key that might appear from server
+                'FREE_ENTRY_CODE', 'free_entry_code', 'freeentrycode', 'freeEntryCode'
+            ]);
             Object.keys(gymData).forEach(key => {
                 if (!Array.isArray(gymData[key]) && !hiddenKeys.has(key)) {
                     generalInfo[key] = gymData[key] || '';
                 }
             });
 
-            // If gymData contains photos (array or @@-joined string), track it separately in state
             console.log('GymGeneralInfoScreen: incoming gymData keys:', Object.keys(gymData));
-            let incomingPhotos = [];
-            if (Array.isArray(gymData.PHOTOS) && gymData.PHOTOS.length > 0) {
-                incomingPhotos = [...gymData.PHOTOS];
-            } else if (typeof gymData.PHOTOS === 'string' && gymData.PHOTOS.trim().length > 0) {
-                incomingPhotos = gymData.PHOTOS.split(/@@/).map(s => s.trim()).filter(Boolean);
-            } else if (Array.isArray(gymData.IMAGES) && gymData.IMAGES.length > 0) {
-                incomingPhotos = [...gymData.IMAGES];
-            } else if (typeof gymData.IMAGES === 'string' && gymData.IMAGES.trim().length > 0) {
-                incomingPhotos = gymData.IMAGES.split(/@@/).map(s => s.trim()).filter(Boolean);
-            } else if (Array.isArray(gymData.MEDIA) && gymData.MEDIA.length > 0) {
-                incomingPhotos = [...gymData.MEDIA];
-            } else if (typeof gymData.MEDIA === 'string' && gymData.MEDIA.trim().length > 0) {
-                incomingPhotos = gymData.MEDIA.split(/@@/).map(s => s.trim()).filter(Boolean);
-            }
-
-            // Normalize incoming photo URLs and ensure they are absolute (prefix attachmentPath if needed)
-            if (incomingPhotos.length > 0) {
-                const normalized = incomingPhotos.map(p => {
-                    if (!p) return p;
-                    const s = String(p).trim();
-                    if (/^(https?:)?\/\//i.test(s)) return s; // already absolute
-                    // prefix with attachmentPath
-                    return Constants.attachmentPath.replace(/\/$/, '') + '/' + s.replace(/^\//, '');
-                });
-                console.log('GymGeneralInfoScreen: normalized PHOTOS:', normalized);
-                setImages(normalized);
-            }
-            setFormData(generalInfo);
+            processGymData(gymData);
         }
     }, [gymData]);
+
+    // If we don't have gymData but a userEmail was provided (navigated from UserInfo), load gym by email
+    useEffect(() => {
+        let mounted = true;
+        const loadByEmail = async () => {
+            if (gymData || !userEmail) return;
+            setIsLoading(true);
+            try {
+                const response = await ServerOperations.getCustomerInfo(userEmail, '');
+                if (response && mounted) {
+                    processGymData(response);
+                }
+            } catch (err) {
+                console.warn('Failed to load gym data by email', err);
+            } finally {
+                if (mounted) setIsLoading(false);
+            }
+        };
+
+        loadByEmail();
+        return () => { mounted = false; };
+    }, [userEmail, gymData]);
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -80,6 +134,10 @@ export default function GymGeneralInfoScreen({ route, navigation }) {
             console.log('payload to save:', payload);
             const response = await ServerOperations.saveGymData(userEmail, 'GENERAL_INFO', payload);
             if (response && response.res) {
+                // Update USER_PROFILE_IMAGE with the first image (display image)
+                if (images.length > 0) {
+                    await Commons.saveToAS(Constants.USER_PROFILE_IMAGE, images[0]);
+                }
                 Alert.alert(t('success'), t('general_info_updated'), [
                     { text: 'OK', onPress: () => navigation.goBack() }
                 ]);
@@ -144,12 +202,21 @@ export default function GymGeneralInfoScreen({ route, navigation }) {
         setImages(newImgs);
     };
 
+    const setAsDisplayImage = (index) => {
+        if (index === 0) return; // Already the display image
+        const newImgs = [...images];
+        const [selectedImage] = newImgs.splice(index, 1);
+        newImgs.unshift(selectedImage);
+        setImages(newImgs);
+    };
+
     const { t } = useTranslation();
 
     return (
         <ScreenBackground>
             <View style={styles.container}>
                 <LoadingOverlay visible={isSaving} message={t('saving_changes')} />
+                <LoadingOverlay visible={isLoading} message={t('loading_gym_data')} />
 
                 <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                     <View style={styles.header}>
@@ -171,6 +238,16 @@ export default function GymGeneralInfoScreen({ route, navigation }) {
                                 {images.map((img, i) => (
                                     <View key={i} style={styles.imageThumbContainer}>
                                         <Image source={{ uri: img }} style={styles.imageThumb} />
+                                        <TouchableOpacity
+                                            style={styles.displayImageButton}
+                                            onPress={() => setAsDisplayImage(i)}
+                                        >
+                                            <MaterialIcons
+                                                name={i === 0 ? "star" : "star-border"}
+                                                size={20}
+                                                color={i === 0 ? theme.colors.gold : theme.colors.white}
+                                            />
+                                        </TouchableOpacity>
                                         <TouchableOpacity style={styles.imageRemove} onPress={() => removeImage(i)}>
                                             <Text style={{ color: 'white' }}>✕</Text>
                                         </TouchableOpacity>
@@ -202,7 +279,7 @@ export default function GymGeneralInfoScreen({ route, navigation }) {
                             // Try to use a translated label for the exact key, fall back to a readable label
                             const translatedLabel = t(baseKey);
                             const labelText = isUsername
-                                ? t('email')
+                                ? t('username')
                                 : (translatedLabel !== baseKey ? translatedLabel : key.replace(/_/g, ' '));
 
                             return (
@@ -365,6 +442,17 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         width: 20,
         height: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    displayImageButton: {
+        position: 'absolute',
+        bottom: 4,
+        right: 4,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        borderRadius: 10,
+        width: 24,
+        height: 24,
         alignItems: 'center',
         justifyContent: 'center',
     },

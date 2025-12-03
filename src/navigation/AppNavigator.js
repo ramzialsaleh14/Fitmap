@@ -19,6 +19,7 @@ import GymPromosScreen from '../screens/GymPromosScreen';
 import GymDetailsScreen from '../screens/GymDetailsScreen';
 import GymMembersScreen from '../screens/GymMembersScreen';
 import MySubscriptionsScreen from '../screens/MySubscriptionsScreen';
+import SearchScreen from '../screens/SearchScreen';
 import { theme } from '../utils/theme';
 import * as Commons from '../utils/Commons';
 
@@ -127,6 +128,11 @@ export default function AppNavigator() {
                     name="GymDetails"
                     component={GymDetailsScreen}
                     options={{ title: 'Gym Details' }}
+                />
+                <Stack.Screen
+                    name="Search"
+                    component={SearchScreen}
+                    options={{ headerShown: false }}
                 />
             </Stack.Navigator>
         </NavigationContainer>

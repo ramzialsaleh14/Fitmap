@@ -22,7 +22,7 @@ export default function GymServicesScreen({ route, navigation }) {
     const { gymData, userEmail } = route.params;
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const { t } = useTranslation();
+    const { t, locale } = useTranslation();
     const [services, setServices] = useState([]); // now an array of { ID, DESC }
     // Service names are not editable. Keep only add/remove.
     const [availableServices, setAvailableServices] = useState([]);
@@ -33,9 +33,9 @@ export default function GymServicesScreen({ route, navigation }) {
         if (gymData && gymData.SERVICES) {
             // normalize services: may be array of strings or objects
             const normalized = gymData.SERVICES.map(s => {
-                if (typeof s === 'string') return { ID: `SV${Math.random().toString(36).substr(2, 8)}`, DESC: s };
-                if (s && (s.DESC || s.desc || s.NAME || s.name)) return { ID: s.ID || s.id || `SV${Math.random().toString(36).substr(2, 8)}`, DESC: s.DESC || s.desc || s.NAME || s.name };
-                return { ID: s.ID || s.id || `SV${Math.random().toString(36).substr(2, 8)}`, DESC: '' };
+                if (typeof s === 'string') return { ID: `SV${Math.random().toString(36).substr(2, 8)}`, DESC: s, DESC_EN: s, DESC_AR: s };
+                // keep full service object where possible (preserve DESC_EN/DESC_AR)
+                return { ID: s.ID || s.id || `SV${Math.random().toString(36).substr(2, 8)}`, ...s };
             });
             setServices(normalized);
         }
@@ -44,8 +44,8 @@ export default function GymServicesScreen({ route, navigation }) {
             try {
                 const resp = await ServerOperations.getServices();
                 if (resp) {
-                    const normalizedMaster = resp.map(s => ({ ID: s.ID || s.id, DESC: s.DESC || s.desc || s.NAME || s.name }));
-                    setAvailableServices(normalizedMaster);
+                    // keep raw service objects from server (they include ID, DESC_EN, DESC_AR etc.)
+                    setAvailableServices(resp);
                 }
             } catch (error) {
                 console.error('Error fetching master services list:', error);
@@ -75,7 +75,8 @@ export default function GymServicesScreen({ route, navigation }) {
 
     // Add by identifier (ID or DESC). Return true if added, false if duplicate / invalid
     const addServiceByValue = (value) => {
-        const serviceObj = availableServices.find(s => s.ID === value || s.DESC === value);
+        // value can be an ID or a label string
+        const serviceObj = availableServices.find(s => s.ID === value || s.DESC === value || Commons.getServiceLabel(s, locale) === value);
         if (!serviceObj) {
             // nothing to add
             return { ok: false, msg: 'select' };
@@ -84,7 +85,8 @@ export default function GymServicesScreen({ route, navigation }) {
         if (services.find(s => s.ID === serviceObj.ID)) {
             return { ok: false, msg: 'duplicate' };
         }
-        setServices(prev => [...prev, { ID: serviceObj.ID, DESC: serviceObj.DESC }]);
+        // preserve the full service object (so DESC_EN / DESC_AR are kept)
+        setServices(prev => [...prev, { ID: serviceObj.ID, ...serviceObj }]);
         // Clear search state to help find next item
         setServiceQuery('');
         return { ok: true };
@@ -159,8 +161,16 @@ export default function GymServicesScreen({ route, navigation }) {
                                         />
                                     </View>
                                     <FlatList
-                                        data={availableServices.filter(s => !serviceQuery || String(s.DESC).toLowerCase().includes(String(serviceQuery).toLowerCase()))}
-                                        keyExtractor={(item) => item.ID?.toString() || item.DESC}
+                                        data={availableServices.filter(s => {
+                                            if (!serviceQuery) return true;
+                                            const q = String(serviceQuery).toLowerCase();
+                                            const label = (Commons.getServiceLabel(s, locale) || '').toLowerCase();
+                                            const en = (s.DESC_EN || s.DESC || s.NAME || s.name || '').toString().toLowerCase();
+                                            const ar = (s.DESC_AR || s.DESC || s.NAME || s.name || '').toString().toLowerCase();
+                                            const raw = JSON.stringify(s).toLowerCase();
+                                            return label.includes(q);
+                                        })}
+                                        keyExtractor={(item) => item.ID?.toString() || Commons.getServiceLabel(item, locale) || JSON.stringify(item).slice(0, 40)}
                                         renderItem={({ item }) => (
                                             <TouchableOpacity
                                                 style={styles.modalItem}
@@ -175,7 +185,10 @@ export default function GymServicesScreen({ route, navigation }) {
                                                 }}
                                             >
                                                 <View style={styles.modalItemRow}>
-                                                    <Text style={styles.modalItemText}>{item.DESC}</Text>
+                                                    <View style={{ flex: 1 }}>
+                                                        <Text style={[styles.modalItemText, { fontWeight: '700' }]}>{item.DESC_EN || item.DESC || item.NAME || item.name || Commons.getServiceLabel(item, locale)}</Text>
+                                                        {item.DESC_AR ? <Text style={[styles.modalItemText, { color: theme.colors.textLight, marginTop: 6 }]}>{item.DESC_AR}</Text> : null}
+                                                    </View>
                                                     <View style={styles.modalItemAction}><Text style={styles.modalItemActionText}>+</Text></View>
                                                 </View>
                                             </TouchableOpacity>
@@ -194,7 +207,7 @@ export default function GymServicesScreen({ route, navigation }) {
                             {services.map((service, index) => (
                                 <View key={index} style={styles.listItem}>
                                     <View style={styles.itemTextContainer}>
-                                        <Text style={styles.itemText}>{service.DESC || service.desc || service.NAME || service}</Text>
+                                        <Text style={styles.itemText}>{Commons.getServiceLabel(service, locale) || service.DESC || service.desc || service.NAME || service}</Text>
                                     </View>
                                     <TouchableOpacity
                                         style={styles.removeButton}

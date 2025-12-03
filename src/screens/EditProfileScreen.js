@@ -26,6 +26,7 @@ export default function EditProfileScreen({ navigation }) {
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const [profileImage, setProfileImage] = useState(null);
+    const [userType, setUserType] = useState(null);
     const [isPickerActive, setIsPickerActive] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
 
@@ -36,11 +37,13 @@ export default function EditProfileScreen({ navigation }) {
     const loadUserData = async () => {
         const userName = await Commons.getFromAS(Constants.USER_NAME);
         const userEmail = await Commons.getFromAS(Constants.USER_EMAIL);
+        const type = await Commons.getFromAS(Constants.USER_TYPE);
         const userPhone = await Commons.getFromAS(Constants.USER_PHONE);
         const userImage = await Commons.getFromAS(Constants.USER_PROFILE_IMAGE);
 
         setName(userName || '');
         setEmail(userEmail || '');
+        setUserType(type || null);
         setPhone(userPhone || '');
         setProfileImage(userImage || null);
     };
@@ -220,7 +223,7 @@ export default function EditProfileScreen({ navigation }) {
                             placeholderTextColor={theme.colors.textLight}
                         />
 
-                        <Text style={styles.label}>{t('email')}</Text>
+                        <Text style={styles.label}>{(userType || '').toLowerCase() === 'gym' ? t('username') : t('email')}</Text>
                         <TextInput
                             style={[styles.input, styles.inputDisabled]}
                             value={email}
@@ -228,7 +231,7 @@ export default function EditProfileScreen({ navigation }) {
                             placeholder={t('enter_email')}
                             placeholderTextColor={theme.colors.textLight}
                         />
-                        <Text style={styles.helperText}>{t('email_cannot_change') || 'Email cannot be changed'}</Text>
+                        <Text style={styles.helperText}>{(userType || '').toLowerCase() === 'gym' ? t('username_cannot_change') : t('email_cannot_change')}</Text>
 
                         <Text style={styles.label}>{t('phone')}</Text>
                         <TextInput

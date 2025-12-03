@@ -30,7 +30,7 @@ export default function CategoryDetailScreen({ route, navigation }) {
     const [filteredGyms, setFilteredGyms] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [query, setQuery] = useState('');
-    const { t } = useTranslation();
+    const { t, locale } = useTranslation();
 
     useEffect(() => {
         loadCategoryGyms();
@@ -97,7 +97,7 @@ export default function CategoryDetailScreen({ route, navigation }) {
             }
             if (gym.SERVICES && Array.isArray(gym.SERVICES)) {
                 // gym.SERVICES can be array of strings or objects {ID, DESC}
-                const servicesText = gym.SERVICES.map(s => (typeof s === 'string' ? s : (s.DESC || s.desc || s.NAME || s.name || ''))).join(' ');
+                const servicesText = gym.SERVICES.map(s => Commons.getServiceLabel(s, locale)).join(' ');
                 parts.push(servicesText);
             }
 

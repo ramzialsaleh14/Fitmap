@@ -200,6 +200,19 @@ export const hexToRgba = (hex, alpha = 1) => {
     return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
 };
 
+// Return a language-appropriate label for a service object (or string)
+export const getServiceLabel = (service, locale = 'ar') => {
+    if (!service && service !== 0) return '';
+    if (typeof service === 'string') return service;
+    const isEn = locale && String(locale).toLowerCase().startsWith('en');
+
+    if (isEn) {
+        return service.DESC_EN || '';
+
+    }
+    return service.DESC_AR || '';
+};
+
 export const okAlert = (title, msg, cancelable = true, fnToPerform = null) => {
     Alert.alert(
         title,

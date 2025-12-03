@@ -7,11 +7,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from '../utils/Strings';
 
 const categoryColors = {
-    // Less saturated, subtle transparent gradients so the sections blend with dark background
-    Platinum: [Commons.hexToRgba(theme.colors.platinum, 0.16), Commons.hexToRgba(theme.colors.platinum, 0.08)],
-    Gold: [Commons.hexToRgba(theme.colors.gold, 0.14), Commons.hexToRgba(theme.colors.gold, 0.06)],
-    Silver: [Commons.hexToRgba(theme.colors.silver, 0.12), Commons.hexToRgba(theme.colors.silver, 0.06)],
-    Bronze: [Commons.hexToRgba(theme.colors.bronze, 0.14), Commons.hexToRgba(theme.colors.bronze, 0.06)],
+    // Increase opacity so category cards are less transparent and more visible
+    Platinum: [Commons.hexToRgba(theme.colors.platinum, 0.36), Commons.hexToRgba(theme.colors.platinum, 0.18)],
+    Gold: [Commons.hexToRgba(theme.colors.gold, 0.34), Commons.hexToRgba(theme.colors.gold, 0.16)],
+    Silver: [Commons.hexToRgba(theme.colors.silver, 0.30), Commons.hexToRgba(theme.colors.silver, 0.14)],
+    Bronze: [Commons.hexToRgba(theme.colors.bronze, 0.34), Commons.hexToRgba(theme.colors.bronze, 0.16)],
 };
 
 // Map category -> icon name & color. We only store strings here to avoid referencing
@@ -31,10 +31,11 @@ const categoryIconColors = {
 };
 
 const categoryBorderColors = {
-    Platinum: Commons.hexToRgba(theme.colors.platinum, 0.23),
-    Gold: Commons.hexToRgba(theme.colors.gold, 0.22),
-    Silver: Commons.hexToRgba(theme.colors.silver, 0.18),
-    Bronze: Commons.hexToRgba(theme.colors.bronze, 0.2),
+    // softer borders — lower alpha for less visual weight
+    Platinum: Commons.hexToRgba(theme.colors.platinum, 0.28),
+    Gold: Commons.hexToRgba(theme.colors.gold, 0.28),
+    Silver: Commons.hexToRgba(theme.colors.silver, 0.24),
+    Bronze: Commons.hexToRgba(theme.colors.bronze, 0.26),
 };
 
 const categoryShadowColors = {
@@ -81,7 +82,8 @@ export default function CategoryCard({ category, onPress, count = 0, thumbs = []
                 <View style={[
                     styles.iconWrapper,
                     {
-                        backgroundColor: Commons.hexToRgba(categoryIconColors[category] || theme.colors.primary, 0.12),
+                        // slightly stronger badge background for clearer contrast
+                        backgroundColor: Commons.hexToRgba(categoryIconColors[category] || theme.colors.primary, 0.30),
                         borderWidth: 1,
                         borderColor: Commons.hexToRgba(categoryIconColors[category] || theme.colors.primary, 0.22),
                         shadowColor: categoryIconColors[category] || theme.colors.primary,
@@ -180,9 +182,9 @@ const styles = StyleSheet.create({
         height: 36,
         borderRadius: 6,
         borderWidth: 1,
-        borderColor: Commons.hexToRgba(theme.colors.white, 0.06),
-        backgroundColor: Commons.hexToRgba(theme.colors.card, 0.04),
-        opacity: 0.95,
+        borderColor: Commons.hexToRgba(theme.colors.white, 0.10),
+        backgroundColor: Commons.hexToRgba(theme.colors.card, 0.14),
+        opacity: 0.98,
     },
     thumbPrimary: {
         width: 46,
