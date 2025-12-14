@@ -13,6 +13,7 @@ export const theme = {
         border: '#2A2A2A',         // Dark gray borders
         error: '#FF4444',
         success: '#2ECC71',
+        warning: '#FFA500',        // Orange for pending/warning status
         // More blue-ish platinum for a cooler, clearer metal look
         // (slightly deeper / more saturated than previous value)
         platinum: '#9ae7fcff',
@@ -29,6 +30,7 @@ export const theme = {
         md: 16,
         lg: 24,
         xl: 32,
+        xxl: 48,
     },
     borderRadius: {
         sm: 8,

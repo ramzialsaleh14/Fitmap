@@ -32,6 +32,7 @@ export const USER_MEMBER_SINCE = "USER_MEMBER_SINCE";
 export const USER_PROFILE_IMAGE = "USER_PROFILE_IMAGE";
 export const USER_PASSWORD = "USER_PASSWORD";
 export const USER_TYPE = "USER_TYPE";
+export const USER_FREE_VISITS = "USER_FREE_VISITS";
 export const USE_LOCATION = "USE_LOCATION";
 
 // Codes
@@ -52,5 +53,8 @@ export const SAVE_GYM_DATA = "SAVE.GYM.DATA";
 export const GET_SERVICES = "GET.SERVICES";
 export const SUBSCRIBE_TO_GYM = "SUBSCRIBE.TO.GYM";
 export const RESTORE_PASSWORD = "RESTORE.PASSWORD";
+export const REQUEST_ENTRY = "REQUEST.ENTRY";
+export const RESPOND_TO_ENTRY_REQUEST = "RESPOND.TO.ENTRY.REQUEST";
+export const GET_ENTRY_REQUESTS = "GET.ENTRY.REQUESTS";
 // Key for saved app language (en/ar)
 export const language = "language";

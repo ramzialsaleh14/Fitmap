@@ -28,10 +28,33 @@ export default function GymDetailsScreen({ route, navigation }) {
     const [gymData, setGymData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+    const [freeVisits, setFreeVisits] = useState(null);
+    const [userEmail, setUserEmail] = useState(null);
+    const [isRequestingEntry, setIsRequestingEntry] = useState(false);
+    const [showDateTimePicker, setShowDateTimePicker] = useState(false);
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [selectedTime, setSelectedTime] = useState(new Date());
+    const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+    const [isTimePickerVisible, setTimePickerVisible] = useState(false);
 
     useEffect(() => {
         loadGymDetails();
+        loadUserData();
     }, [gymId]);
+
+    const loadUserData = async () => {
+        const email = await Commons.getFromAS(Constants.USER_EMAIL);
+        const freeVisitsStr = await Commons.getFromAS(Constants.USER_FREE_VISITS);
+        setUserEmail(email);
+
+        if (freeVisitsStr) {
+            try {
+                setFreeVisits(JSON.parse(freeVisitsStr));
+            } catch (e) {
+                console.error('Error parsing freeVisits:', e);
+            }
+        }
+    };
 
     const loadGymDetails = async () => {
         setIsLoading(true);
@@ -99,11 +122,112 @@ export default function GymDetailsScreen({ route, navigation }) {
         return s;
     };
 
+    const checkEligibility = (gymCategory) => {
+        if (!freeVisits || !gymCategory) return false;
+
+        const category = String(gymCategory).toLowerCase();
+        const platinum = parseInt(freeVisits.platinum || '0', 10);
+        const gold = parseInt(freeVisits.gold || '0', 10);
+        const silver = parseInt(freeVisits.silver || '0', 10);
+        const bronze = parseInt(freeVisits.bronze || '0', 10);
+
+        // Only check exact category match
+        if (category === 'platinum') return platinum > 0;
+        if (category === 'gold') return gold > 0;
+        if (category === 'silver') return silver > 0;
+        if (category === 'bronze') return bronze > 0;
+
+        return false;
+    };
+
+    const handleRequestEntry = async () => {
+        if (!userEmail || !gymData) {
+            Alert.alert(t('error'), t('please_login'));
+            return;
+        }
+
+        const gymCategory = gymData.CATEGORY;
+        if (!checkEligibility(gymCategory)) {
+            Alert.alert(
+                t('no_free_visits'),
+                t('no_free_visits_message').replace('{category}', gymCategory)
+            );
+            return;
+        }
+
+        // Show date/time picker modal
+        setSelectedDate(new Date());
+        setSelectedTime(new Date());
+        setShowDateTimePicker(true);
+    };
+
+    const formatDate = (date) => {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    };
+
+    const formatTime = (date) => {
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${hours}:${minutes}`;
+    };
+
+    const confirmRequestEntry = () => {
+        Alert.alert(
+            t('confirm_request_entry'),
+            t('confirm_request_entry_message'),
+            [
+                {
+                    text: t('cancel'),
+                    style: 'cancel'
+                },
+                {
+                    text: t('yes'),
+                    onPress: () => {
+                        setShowDateTimePicker(false);
+                        sendRequestEntry(gymData.CATEGORY, formatDate(selectedDate), formatTime(selectedTime));
+                    }
+                }
+            ]
+        );
+    };
+
+    const sendRequestEntry = async (gymCategory, date, time) => {
+        setIsRequestingEntry(true);
+        try {
+            const response = await ServerOperations.requestEntry(userEmail, gymId, gymCategory, date, time);
+
+            if (response && response.res) {
+                // Don't deduct visit count here - it will be deducted when gym approves
+                Alert.alert(
+                    t('request_entry_success'),
+                    t('request_entry_success_message')
+                );
+            } else {
+                Alert.alert(
+                    t('request_entry_failed'),
+                    response?.msg || t('failed_save_changes')
+                );
+            }
+        } catch (error) {
+            console.error('Error requesting entry:', error);
+            Alert.alert(
+                t('request_entry_failed'),
+                t('failed_save_changes')
+            );
+        } finally {
+            setIsRequestingEntry(false);
+        }
+    };
+
     const [subscribeModalVisible, setSubscribeModalVisible] = useState(false);
     const [modalPlan, setModalPlan] = useState(null); // { type: 'subscription'|'promo', period, price }
     const [modalStartDate, setModalStartDate] = useState('');
     const [modalError, setModalError] = useState('');
-    const [datePickerVisible, setDatePickerVisible] = useState(false);
+    // subscription modal date picker state
+    const [subscriptionDatePickerVisible, setSubscriptionDatePickerVisible] = useState(false);
     const [isSubscribing, setIsSubscribing] = useState(false);
 
     const formatDateDDMMYYYY = (date) => {
@@ -209,6 +333,19 @@ export default function GymDetailsScreen({ route, navigation }) {
                         >
                             <MaterialIcons name="call" size={18} color={theme.colors.primary} style={styles.phoneIcon} />
                             <Text style={styles.phoneText}>{gymData.PHONE}</Text>
+                        </TouchableOpacity>
+                    )}
+
+                    {userEmail && checkEligibility(gymData.CATEGORY) && (
+                        <TouchableOpacity
+                            style={[styles.phoneButton, styles.requestEntryButton]}
+                            onPress={handleRequestEntry}
+                            disabled={isRequestingEntry}
+                        >
+                            <MaterialIcons name="login" size={18} color={theme.colors.white} style={styles.phoneIcon} />
+                            <Text style={[styles.phoneText, styles.requestEntryText]}>
+                                {isRequestingEntry ? t('requesting') : t('request_entry')}
+                            </Text>
                         </TouchableOpacity>
                     )}
                 </View>
@@ -379,7 +516,7 @@ export default function GymDetailsScreen({ route, navigation }) {
                                 )}
                             </View>
 
-                            <TouchableOpacity style={[styles.modalDateField, modalError ? { borderColor: theme.colors.error, borderWidth: 1 } : null]} onPress={() => { setDatePickerVisible(true); setModalError(''); }}>
+                            <TouchableOpacity style={[styles.modalDateField, modalError ? { borderColor: theme.colors.error, borderWidth: 1 } : null]} onPress={() => { setSubscriptionDatePickerVisible(true); setModalError(''); }}>
                                 <MaterialIcons name="calendar-today" size={18} color={modalStartDate ? theme.colors.primary : theme.colors.textLight} style={{ marginRight: theme.spacing.sm }} />
                                 <Text style={{ color: modalStartDate ? theme.colors.text : theme.colors.textLight }}>{modalStartDate || t('pick_start_date')}</Text>
                             </TouchableOpacity>
@@ -432,15 +569,83 @@ export default function GymDetailsScreen({ route, navigation }) {
                     </View>
                 </RNModal>
 
+                {/* Date/Time Picker Modal for Entry Requests */}
+                <RNModal
+                    visible={showDateTimePicker}
+                    transparent
+                    animationType="fade"
+                    onRequestClose={() => setShowDateTimePicker(false)}
+                >
+                    <View style={styles.modalBackdrop}>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalTitle}>{t('select_date_time')}</Text>
+
+                            <TouchableOpacity
+                                style={styles.modalDateField}
+                                onPress={() => setDatePickerVisible(true)}
+                            >
+                                <MaterialIcons name="calendar-today" size={18} color={theme.colors.primary} style={{ marginRight: theme.spacing.sm }} />
+                                <Text style={{ color: theme.colors.text }}>{formatDate(selectedDate)}</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.modalDateField}
+                                onPress={() => setTimePickerVisible(true)}
+                            >
+                                <MaterialIcons name="access-time" size={18} color={theme.colors.primary} style={{ marginRight: theme.spacing.sm }} />
+                                <Text style={{ color: theme.colors.text }}>{formatTime(selectedTime)}</Text>
+                            </TouchableOpacity>
+
+                            <View style={{ flexDirection: 'row', gap: theme.spacing.md, marginTop: theme.spacing.md }}>
+                                <TouchableOpacity
+                                    style={[styles.button, styles.cancelButton]}
+                                    onPress={() => setShowDateTimePicker(false)}
+                                >
+                                    <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.button, styles.saveButton]}
+                                    onPress={confirmRequestEntry}
+                                >
+                                    <Text style={styles.saveButtonText}>{t('confirm')}</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </RNModal>
+
                 <DateTimePickerModal
-                    isVisible={datePickerVisible}
+                    isVisible={subscriptionDatePickerVisible}
                     mode="date"
                     date={new Date()}
                     onConfirm={(date) => {
-                        setDatePickerVisible(false);
+                        setSubscriptionDatePickerVisible(false);
                         setModalStartDate(formatDateDDMMYYYY(date));
                     }}
+                    onCancel={() => setSubscriptionDatePickerVisible(false)}
+                />
+
+                <DateTimePickerModal
+                    isVisible={isDatePickerVisible}
+                    mode="date"
+                    date={selectedDate}
+                    onConfirm={(date) => {
+                        setDatePickerVisible(false);
+                        setSelectedDate(date);
+                    }}
                     onCancel={() => setDatePickerVisible(false)}
+                />
+
+                <DateTimePickerModal
+                    isVisible={isTimePickerVisible}
+                    mode="time"
+                    date={selectedTime}
+                    onConfirm={(time) => {
+                        setTimePickerVisible(false);
+                        setSelectedTime(time);
+                    }}
+                    onCancel={() => setTimePickerVisible(false)}
                 />
             </ScrollView>
         </ScreenBackground>
@@ -553,6 +758,13 @@ const styles = StyleSheet.create({
         color: theme.colors.primary,
         fontSize: theme.fontSize.md,
         fontWeight: '600',
+    },
+    requestEntryButton: {
+        backgroundColor: theme.colors.primary,
+        marginTop: theme.spacing.sm,
+    },
+    requestEntryText: {
+        color: theme.colors.white,
     },
     section: {
         padding: theme.spacing.lg,

@@ -33,10 +33,41 @@ export default function GymMainScreen() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     const loadUserData = async () => {
-        const name = await Commons.getFromAS(Constants.USER_NAME);
         const email = await Commons.getFromAS(Constants.USER_EMAIL);
-        const profileImage = await Commons.getFromAS(Constants.USER_PROFILE_IMAGE);
+        const password = await Commons.getFromAS(Constants.USER_PASSWORD);
         const loggedIn = await Commons.getFromAS(Constants.IS_LOGGED_IN);
+
+        // Re-validate login with server to get fresh data
+        if (email && password && loggedIn === 'true') {
+            try {
+                const resp = await ServerOperations.checkLogin(email, password);
+                if (resp && resp.res) {
+                    // Update stored data with fresh info from server
+                    await Commons.saveToAS(Constants.USER_NAME, resp.name || 'Gym Owner');
+                    await Commons.saveToAS(Constants.USER_PHONE, resp.phone || '');
+                    await Commons.saveToAS(Constants.USER_PROFILE_IMAGE, resp.photo || '');
+                    await Commons.saveToAS(Constants.USER_MEMBER_SINCE, resp.date);
+                    await Commons.saveToAS(Constants.USER_TYPE, resp.type);
+
+                    setUser({
+                        name: resp.name || 'Gym Owner',
+                        email: email || '',
+                        profileImage: resp.photo || null,
+                    });
+                    setIsLoggedIn(true);
+
+                    // Load gym data
+                    await loadGymData(email);
+                    return;
+                }
+            } catch (error) {
+                console.error('Error re-validating login:', error);
+            }
+        }
+
+        // Fallback to stored data if server check fails
+        const name = await Commons.getFromAS(Constants.USER_NAME);
+        const profileImage = await Commons.getFromAS(Constants.USER_PROFILE_IMAGE);
 
         setUser({
             name: name || 'Gym Owner',
@@ -91,6 +122,7 @@ export default function GymMainScreen() {
     };
 
     const managementOptions = [
+        { id: 'entry_requests', title: t('entry_requests'), icon: <MaterialIcons name="inbox" size={22} color={theme.colors.error} />, screen: 'EntryRequests', color: theme.colors.error },
         { id: 'general', title: t('general_information'), icon: <MaterialIcons name="info" size={22} color={theme.colors.primary} />, screen: 'GymGeneralInfo', color: theme.colors.primary },
         { id: 'services', title: t('services_text'), icon: <MaterialCommunityIcons name="dumbbell" size={22} color={theme.colors.gold} />, screen: 'GymServices', color: theme.colors.gold },
         { id: 'branches', title: t('branches'), icon: <MaterialIcons name="location-on" size={22} color={theme.colors.platinum} />, screen: 'GymBranches', color: theme.colors.platinum },

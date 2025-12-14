@@ -7,17 +7,21 @@ import {
     TouchableOpacity,
     Alert,
     Image,
+    ActivityIndicator,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { theme } from '../utils/theme';
 import ScreenBackground from '../components/ScreenBackground';
 import * as Commons from '../utils/Commons';
 import * as Constants from '../utils/Constants';
+import * as ServerOperations from '../utils/ServerOperations';
 import { useTranslation } from '../utils/Strings';
 
 export default function UserInfoScreen() {
     const navigation = useNavigation();
     const { t } = useTranslation();
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [user, setUser] = useState({
         name: '',
         email: '',
@@ -25,15 +29,74 @@ export default function UserInfoScreen() {
         memberSince: '',
         profileImage: null,
         type: null,
+        freeVisits: null,
     });
 
-    const loadUserData = async () => {
+    const refreshUserData = async () => {
+        // Load data from storage immediately (except free visits)
+        await loadUserDataFromStorage(false);
+
+        // Show loading for free visits
+        setIsRefreshing(true);
+
+        try {
+            const email = await Commons.getFromAS(Constants.USER_EMAIL);
+            const password = await Commons.getFromAS(Constants.USER_PASSWORD);
+
+            if (email && password) {
+                const response = await ServerOperations.checkLogin(email, password);
+
+                if (response && response.res) {
+                    // Update AsyncStorage with fresh data
+                    if (response.name) {
+                        await Commons.saveToAS(Constants.USER_NAME, response.name);
+                    }
+                    if (response.phone) {
+                        await Commons.saveToAS(Constants.USER_PHONE, response.phone);
+                    }
+                    if (response.date) {
+                        await Commons.saveToAS(Constants.USER_MEMBER_SINCE, response.date);
+                    }
+                    if (response.photo) {
+                        await Commons.saveToAS(Constants.USER_PROFILE_IMAGE, response.photo);
+                    }
+                    if (response.type) {
+                        await Commons.saveToAS(Constants.USER_TYPE, response.type);
+                    }
+                    if (response.freeVisits) {
+                        await Commons.saveToAS(Constants.USER_FREE_VISITS, JSON.stringify(response.freeVisits));
+                    }
+
+                    // Reload user data with free visits
+                    await loadUserDataFromStorage(true);
+                }
+            }
+        } catch (error) {
+            console.error('Error refreshing user data:', error);
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
+    const loadUserDataFromStorage = async (includeFreeVisits = true) => {
         const name = await Commons.getFromAS(Constants.USER_NAME);
         const email = await Commons.getFromAS(Constants.USER_EMAIL);
         const type = await Commons.getFromAS(Constants.USER_TYPE);
         const phone = await Commons.getFromAS(Constants.USER_PHONE);
         const memberSince = await Commons.getFromAS(Constants.USER_MEMBER_SINCE);
         const profileImage = await Commons.getFromAS(Constants.USER_PROFILE_IMAGE);
+
+        let freeVisits = null;
+        if (includeFreeVisits) {
+            const freeVisitsStr = await Commons.getFromAS(Constants.USER_FREE_VISITS);
+            if (freeVisitsStr) {
+                try {
+                    freeVisits = JSON.parse(freeVisitsStr);
+                } catch (e) {
+                    console.error('Error parsing freeVisits:', e);
+                }
+            }
+        }
 
         setUser({
             name: name || 'User',
@@ -42,12 +105,13 @@ export default function UserInfoScreen() {
             memberSince: memberSince || 'N/A',
             profileImage: profileImage || null,
             type: type || null,
+            freeVisits: freeVisits,
         });
     };
 
     useFocusEffect(
         React.useCallback(() => {
-            loadUserData();
+            refreshUserData();
         }, [])
     );
 
@@ -119,6 +183,72 @@ export default function UserInfoScreen() {
                         </View>
                     </View>
                 </View>
+
+                {user.type !== 'Gym' && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>{t('free_entries')}</Text>
+                        <View style={styles.infoCard}>
+                            {isRefreshing && !user.freeVisits ? (
+                                <View style={styles.loadingContainer}>
+                                    <ActivityIndicator size="small" color={theme.colors.primary} />
+                                    <Text style={styles.loadingText}>{t('loading')}...</Text>
+                                </View>
+                            ) : user.freeVisits ? (
+                                <>
+                                    {user.freeVisits.platinum && user.freeVisits.platinum !== '0' && (
+                                        <>
+                                            <View style={styles.freeEntriesRow}>
+                                                <Text style={styles.categoryLabel}>{t('category_platinum')}</Text>
+                                                <View style={styles.starsContainer}>
+                                                    {[...Array(parseInt(user.freeVisits.platinum))].map((_, i) => (
+                                                        <MaterialIcons key={i} name="star" size={20} color={theme.colors.platinum} style={styles.starIcon} />
+                                                    ))}
+                                                </View>
+                                            </View>
+                                            <View style={styles.divider} />
+                                        </>
+                                    )}
+                                    {user.freeVisits.gold && user.freeVisits.gold !== '0' && (
+                                        <>
+                                            <View style={styles.freeEntriesRow}>
+                                                <Text style={styles.categoryLabel}>{t('category_gold')}</Text>
+                                                <View style={styles.starsContainer}>
+                                                    {[...Array(parseInt(user.freeVisits.gold))].map((_, i) => (
+                                                        <MaterialIcons key={i} name="star" size={20} color={theme.colors.gold} style={styles.starIcon} />
+                                                    ))}
+                                                </View>
+                                            </View>
+                                            <View style={styles.divider} />
+                                        </>
+                                    )}
+                                    {user.freeVisits.silver && user.freeVisits.silver !== '0' && (
+                                        <>
+                                            <View style={styles.freeEntriesRow}>
+                                                <Text style={styles.categoryLabel}>{t('category_silver')}</Text>
+                                                <View style={styles.starsContainer}>
+                                                    {[...Array(parseInt(user.freeVisits.silver))].map((_, i) => (
+                                                        <MaterialIcons key={i} name="star" size={20} color={theme.colors.silver} style={styles.starIcon} />
+                                                    ))}
+                                                </View>
+                                            </View>
+                                            <View style={styles.divider} />
+                                        </>
+                                    )}
+                                    {user.freeVisits.bronze && user.freeVisits.bronze !== '0' && (
+                                        <View style={styles.freeEntriesRow}>
+                                            <Text style={styles.categoryLabel}>{t('category_bronze')}</Text>
+                                            <View style={styles.starsContainer}>
+                                                {[...Array(parseInt(user.freeVisits.bronze))].map((_, i) => (
+                                                    <MaterialIcons key={i} name="star" size={20} color={theme.colors.bronze} style={styles.starIcon} />
+                                                ))}
+                                            </View>
+                                        </View>
+                                    )}
+                                </>
+                            ) : null}
+                        </View>
+                    </View>
+                )}
 
                 <View style={styles.section}>
                     <TouchableOpacity
@@ -242,5 +372,34 @@ const styles = StyleSheet.create({
     },
     dangerButtonText: {
         color: theme.colors.white,
+    },
+    freeEntriesRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: theme.spacing.md,
+    },
+    categoryLabel: {
+        fontSize: theme.fontSize.md,
+        color: theme.colors.text,
+        fontWeight: '600',
+    },
+    starsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    starIcon: {
+        marginLeft: 2,
+    },
+    loadingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: theme.spacing.xl,
+    },
+    loadingText: {
+        fontSize: theme.fontSize.sm,
+        color: theme.colors.textLight,
+        marginLeft: theme.spacing.sm,
     },
 });

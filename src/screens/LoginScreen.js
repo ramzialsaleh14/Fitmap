@@ -44,6 +44,11 @@ export default function LoginScreen({ navigation }) {
             await Commons.saveToAS(Constants.USER_MEMBER_SINCE, resp.date);
             await Commons.saveToAS(Constants.USER_TYPE, resp.type);
 
+            // Save free visits if available
+            if (resp.freeVisits) {
+                await Commons.saveToAS(Constants.USER_FREE_VISITS, JSON.stringify(resp.freeVisits));
+            }
+
             // Navigate based on user type
             if (resp.type === 'Gym') {
                 navigation.navigate('GymMain');
@@ -63,12 +68,12 @@ export default function LoginScreen({ navigation }) {
                     <Text style={styles.subtitle}>{t('login_to_account')}</Text>
 
                     <View style={styles.form}>
-                        <Text style={styles.label}>{t('email_username')}</Text>
+                        <Text style={styles.label}>{t('email')}</Text>
                         <TextInput
                             style={styles.input}
                             value={email}
                             onChangeText={setEmail}
-                            placeholder={t('enter_email_username')}
+                            placeholder={t('enter_email')}
                             placeholderTextColor={theme.colors.textLight}
                             keyboardType="email-address"
                             autoCapitalize="none"

@@ -20,6 +20,7 @@ import GymDetailsScreen from '../screens/GymDetailsScreen';
 import GymMembersScreen from '../screens/GymMembersScreen';
 import MySubscriptionsScreen from '../screens/MySubscriptionsScreen';
 import SearchScreen from '../screens/SearchScreen';
+import EntryRequestsScreen from '../screens/EntryRequestsScreen';
 import { theme } from '../utils/theme';
 import * as Commons from '../utils/Commons';
 
@@ -118,6 +119,11 @@ export default function AppNavigator() {
                     name="GymMembers"
                     component={GymMembersScreen}
                     options={{ title: 'Members' }}
+                />
+                <Stack.Screen
+                    name="EntryRequests"
+                    component={EntryRequestsScreen}
+                    options={{ headerShown: false }}
                 />
                 <Stack.Screen
                     name="MySubscriptions"

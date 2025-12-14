@@ -48,8 +48,51 @@ export default function MainScreen() {
     const loadUserData = async () => {
         const loggedIn = await Commons.getFromAS(Constants.IS_LOGGED_IN);
         if (loggedIn === 'true') {
-            const name = await Commons.getFromAS(Constants.USER_NAME);
             const email = await Commons.getFromAS(Constants.USER_EMAIL);
+            const password = await Commons.getFromAS(Constants.USER_PASSWORD);
+
+            // Re-validate login with server to get fresh data including free visits
+            if (email && password) {
+                try {
+                    const resp = await ServerOperations.checkLogin(email, password);
+                    if (resp && resp.res) {
+                        // Update stored data with fresh info from server
+                        await Commons.saveToAS(Constants.USER_NAME, resp.name || 'User');
+                        await Commons.saveToAS(Constants.USER_PHONE, resp.phone || '');
+                        await Commons.saveToAS(Constants.USER_PROFILE_IMAGE, resp.photo || '');
+                        await Commons.saveToAS(Constants.USER_MEMBER_SINCE, resp.date);
+                        await Commons.saveToAS(Constants.USER_TYPE, resp.type);
+
+                        // Update free visits if available
+                        if (resp.freeVisits) {
+                            await Commons.saveToAS(Constants.USER_FREE_VISITS, JSON.stringify(resp.freeVisits));
+                        }
+
+                        const userType = resp.type;
+
+                        // If user is a gym, redirect to gym management screen
+                        if (userType === 'Gym') {
+                            navigation.replace('GymMain');
+                            return;
+                        }
+
+                        setIsLoggedIn(true);
+                        setUser({
+                            name: resp.name || 'User',
+                            email: email || '',
+                            phone: resp.phone || '',
+                            memberSince: resp.date || '',
+                            profileImage: resp.photo || null,
+                        });
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Error re-validating login:', error);
+                }
+            }
+
+            // Fallback to stored data if server check fails
+            const name = await Commons.getFromAS(Constants.USER_NAME);
             const phone = await Commons.getFromAS(Constants.USER_PHONE);
             const memberSince = await Commons.getFromAS(Constants.USER_MEMBER_SINCE);
             const profileImage = await Commons.getFromAS(Constants.USER_PROFILE_IMAGE);

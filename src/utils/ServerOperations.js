@@ -479,6 +479,77 @@ export const subToGym = async (userEmail, gymId, period, price, startDate) => {
     }
 };
 
+export const requestEntry = async (userEmail, gymId, gymCategory, date, time) => {
+    try {
+        let params = "";
+        params += `action=${Constants.REQUEST_ENTRY}`;
+        params += `&EMAIL=${safeEncodeURIComponent(userEmail || '')}`;
+        params += `&GYM=${safeEncodeURIComponent(gymId || '')}`;
+        params += `&CATEGORY=${safeEncodeURIComponent(gymCategory || '')}`;
+        params += `&DATE=${safeEncodeURIComponent(date || '')}`;
+        params += `&TIME=${safeEncodeURIComponent(time || '')}`;
+
+        const response = await pickHttpRequest(params);
+
+        if (response === Constants.networkError_code) {
+            return { res: false, msg: 'Network error. Please check your connection.' };
+        }
+        if (response.ok) {
+            return await response.json();
+        }
+        return null;
+    } catch (e) {
+        console.error('requestEntry error', e);
+        return { res: false, msg: 'Unexpected error' };
+    }
+};
+
+export const respondToEntryRequest = async (requestId, responseStatus) => {
+    try {
+        let params = "";
+        params += `action=${Constants.RESPOND_TO_ENTRY_REQUEST}`;
+        params += `&REQUEST.ID=${safeEncodeURIComponent(requestId || '')}`;
+        params += `&RESPONSE=${responseStatus}`;
+
+        const response = await pickHttpRequest(params);
+
+        if (response === Constants.networkError_code) {
+            return { res: false, msg: 'Network error. Please check your connection.' };
+        }
+        if (response.ok) {
+            return await response.json();
+        }
+        return null;
+    } catch (e) {
+        console.error('respondToEntryRequest error', e);
+        return { res: false, msg: 'Unexpected error' };
+    }
+};
+
+export const getEntryRequests = async (gym, fromDate, toDate, status) => {
+    try {
+        let params = "";
+        params += `action=${Constants.GET_ENTRY_REQUESTS}`;
+        params += `&GYM=${safeEncodeURIComponent(gym || '')}`;
+        params += `&FROM.DATE=${safeEncodeURIComponent(fromDate || '')}`;
+        params += `&TO.DATE=${safeEncodeURIComponent(toDate || '')}`;
+        params += `&STATUS=${safeEncodeURIComponent(status || '')}`;
+
+        const response = await pickHttpRequest(params);
+
+        if (response === Constants.networkError_code) {
+            return { res: false, msg: 'Network error. Please check your connection.', data: [] };
+        }
+        if (response.ok) {
+            return await response.json();
+        }
+        return null;
+    } catch (e) {
+        console.error('getEntryRequests error', e);
+        return { res: false, msg: 'Unexpected error', data: [] };
+    }
+};
+
 
 
 
